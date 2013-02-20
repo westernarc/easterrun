@@ -1,0 +1,12 @@
+package com.westernarc.easterrun.Actors;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+import com.badlogic.gdx.math.Vector3;
+
+public class Actor {
+	public Vector3 position;
+	public StillModel model;
+	public Material material;
+	public Texture texture;
+}

@@ -1,0 +1,5 @@
+package com.westernarc.easterrun.Actors;
+
+public class Actor {
+	StillModel model;
+}
