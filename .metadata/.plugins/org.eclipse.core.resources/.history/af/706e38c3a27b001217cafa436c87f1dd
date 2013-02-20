@@ -1,0 +1,13 @@
+package com.westernarc.easterrun.Actors;
+
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+
+public class AnimActor extends Actor {
+	public StillModel[] modelList;
+	public int startIndex;
+	public int endIndex;
+	
+	public void update(float tpf) {
+		super.update(tpf);
+	}
+}

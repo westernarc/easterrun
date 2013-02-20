@@ -1,0 +1,7 @@
+package com.westernarc.easterrun.Actors;
+
+public class AnimActor extends Actor {
+	public StillModel[] modelList;
+	public int startIndex;
+	public int endIndex;
+}

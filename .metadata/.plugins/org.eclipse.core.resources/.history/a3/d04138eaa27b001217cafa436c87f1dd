@@ -1,0 +1,25 @@
+package com.westernarc.easterrun.Actors;
+
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+
+public class AnimActor extends Actor {
+	public StillModel[] modelList;
+	public int startIndex;
+	public int endIndex;
+	public float animFrameRate;
+	public int currentFrame;
+	
+	private float animFrameTimer;
+	
+	public AnimActor() {
+		
+	}
+	
+	public void update(float tpf) {
+		super.update(tpf);
+		
+		//Update animation frames
+		animFrameTimer += tpf;
+		if(animFrameTimer)
+	}
+}
