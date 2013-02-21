@@ -10,6 +10,7 @@ public class AnimActor extends Actor {
 	public int currentFrame;
 	
 	private float animFrameTimer;
+	public static final float constDefaultFrameRate = 1/50f; 
 	
 	public AnimActor(int start, int end) {
 		startIndex = start;
@@ -20,7 +21,7 @@ public class AnimActor extends Actor {
 		modelList = new StillModel[end + start];
 		
 		currentFrame = startIndex;
-		animFrameRate = 1/50f;
+		animFrameRate = constDefaultFrameRate;
 	}
 	
 	public void update(float tpf) {

@@ -14,7 +14,7 @@ public class Actor {
 	public Material material;
 	public Texture texture;
 	
-	public enum Type {Player, Egg, Ground, Bomb};
+	public enum Type {Player, Egg, Powerup, Ground, Bomb};
 	public Type actorType;
 	
 	//Whether or not the actor can be collided with
@@ -50,8 +50,8 @@ public class Actor {
 		//Actors that are not collisionActive cannot collide; return false immediately
 		if(!collisionActive) return false;
 		
-		//TODO Currently, all actors have a size of 4
-		if(Math.abs(a.position.x - position.x) < 4 && Math.abs(a.position.z - position.z) < 4) {
+		//TODO Currently, all actors have a size of 2
+		if(Math.abs(a.position.x - position.x) < 2 && Math.abs(a.position.z - position.z) < 2) {
 			return true;
 		} else {
 			return false;

@@ -42,7 +42,7 @@ public class EasterRun implements ApplicationListener {
 	final int groundMax = 3;
 	final int groundLength = 87;
 	Actor[] actGround;
-	final float groundBaseRate = 40;
+	final float constGroundBaseRate = 40;
 	float groundRate;
 	
 	AnimActor actPlayer;
@@ -50,11 +50,13 @@ public class EasterRun implements ApplicationListener {
 	Material matPlayer;
 	Texture txrPlayerRed;
 	Material matPlayerRed;
+	final float constPlayerX = -5;
 	
 	final int eggMax = 5;
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
-	final float eggBaseRate = 1; 
+	final float eggBaseRate = 0.7f;
+	final float eggMaxRate = 0.2f;
 	float eggRate;
 	float eggTimer;
 	
@@ -80,8 +82,8 @@ public class EasterRun implements ApplicationListener {
 	
 	BitmapFont uiFont;
 	//Time and score records
-	final float constTimeTextPosXOrigin = -50;
-	final float constScoreTextPosXOrigin = 30;
+	final float constTimeTextPosXOrigin = -300;
+	final float constScoreTextPosXOrigin = 280;
 	final float constScoreTextPosXTrans = 70;
 	final float constTimeTextPosXTrans = 40;
 	float timeTextPosX;
@@ -94,11 +96,19 @@ public class EasterRun implements ApplicationListener {
 	int scoreIndent;
 	int hiScoreIndent;
 	
+	//Other game variables
+	final float constPowerupDuration = 4;
+	final float constPowerupEffect = 2;
+	boolean powerupActive;
+	float powerupTimer;
+	
 	//TODO: Particle effects
 	//TODO: Gui Tweening
+	//TODO: Music
+	//TODO: Jumping
 	
 	public void initialize() {
-		groundRate = groundBaseRate;
+		groundRate = constGroundBaseRate;
 		
 		eggRate = eggBaseRate;
 		eggTimer = 0;
@@ -121,6 +131,11 @@ public class EasterRun implements ApplicationListener {
 		
 		scoreTextScale = 1;
 		scoreStored = false;
+		
+		powerupActive = false;
+		powerupTimer = 0;
+		
+		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
 	}
 	
 	@Override
@@ -135,7 +150,7 @@ public class EasterRun implements ApplicationListener {
 		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
 		gameCamera.near = 0.1f;
 		gameCamera.far = 1000;
-		gameCamera.position.set(0,30,0);
+		gameCamera.position.set(0,28,0);
 		gameCamera.lookAt(-20, 0, 0);
 		
 		uiBatch = new SpriteBatch();
@@ -188,13 +203,14 @@ public class EasterRun implements ApplicationListener {
 		actPlayer.position.x = 20;
 		
 		//Load eggs
-		//EggMax array holds eggMax-1 egg actors and 1 bomb actor
+		//EggMax array holds eggMax-2 egg actors, one powerup, and 1 bomb actor
 		actEggs = new Actor[eggMax];
 		for(int i = 1; i <= eggMax; i++) {
 			actEggs[i - 1] = new Actor(Actor.Type.Egg);
 			if(i != eggMax) {
 				//For eggs[0] to eggs[eggMax-1] keep type Egg
 				actEggs[i - 1].model = loadModel("models/egg" + i);
+				if(i == eggMax - 1) actEggs[i - 1].actorType = Actor.Type.Powerup;
 			} else {
 				//Set the type to bomb
 				actEggs[i - 1].model = loadModel("models/bomb");
@@ -270,7 +286,7 @@ public class EasterRun implements ApplicationListener {
 			//Update
 			currentEgg.update(tpf);
 			currentEgg.move(groundRate * tpf, 0, 0);
-			if(currentEgg.position.x > groundLength * 1.5f || currentEgg.position.y < -10) eggItr.remove();
+			if(currentEgg.position.x > 40 || currentEgg.position.y < -10) eggItr.remove();
 			
 			//If the eggs are near the player, do collision detection
 			if(currentEgg.position.x > -20 && currentEgg.collidesWith(actPlayer) && gameState == States.play) {
@@ -281,14 +297,19 @@ public class EasterRun implements ApplicationListener {
 					break;
 				case Egg:
 					onEggHit(currentEgg);
+					currentEgg.collisionActive = false;
 					break;
 				case Ground:
 					break;
 				case Player:
 					break;
+				case Powerup:
+					onEggHit(currentEgg);
+					onPowerupHit();
+					currentEgg.collisionActive = false;
+					break;
 				default:
 					break;
-				
 				}
 			}
 				
@@ -304,13 +325,13 @@ public class EasterRun implements ApplicationListener {
 		//Draw ui elements over models
 		uiBatch.begin();
 		sprTitle.draw(uiBatch);
-		uiFont.draw(uiBatch, "" + Math.round(gameTimer), timeTextPosX, screenHeight - 20);
+		uiFont.draw(uiBatch, Math.round(gameTimer) + "ft", timeTextPosX, screenHeight - 20);
 		
 		//Handle score display scaling
 		if(scoreTextScale > 1) scoreTextScale -= tpf  * 4;
 		if(scoreTextScale < 1) scoreTextScale = 1;
 		uiFont.setScale(scoreTextScale);
-		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (numOfDigits(gameScore) * uiFont.getSpaceWidth()), screenHeight - 20);
+		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (numOfDigits(gameScore) * uiFont.getSpaceWidth())*1.5f, screenHeight - 20);
 		uiFont.setScale(1);
 		
 		//Deal with total scores
@@ -336,7 +357,7 @@ public class EasterRun implements ApplicationListener {
 			}
 			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1600;
 		} else {
-			if(scoreTextPosY >= -350) scoreTextPosY -= tpf * 1600;
+			if(scoreTextPosY > -350) scoreTextPosY -= tpf * 1600; else scoreTextPosY = -350;
 		}
 		//Only draw the scores if they are within view
 		if(scoreTextPosY > -320) {
@@ -349,8 +370,6 @@ public class EasterRun implements ApplicationListener {
 		//End drawing 2d
 	}
 	public void update(float tpf) {
-		//TODO increase difficulty with passing time
-		
 		//Update title sprite
 		if(gameState == States.title && titleAlpha < 1) {
 			titleAlpha += tpf * 2;
@@ -362,21 +381,20 @@ public class EasterRun implements ApplicationListener {
 			sprTitle.setColor(1,1,1,titleAlpha);
 		}
 		
-		//TODO Correct display position
 		//Update score displays
 		if(gameState == States.play) {
 			if(timeTextPosX < constTimeTextPosXTrans)
-				timeTextPosX += tpf * 150;
+				timeTextPosX += tpf * 450;
 			else
-				gameTimer += tpf * 10;
+				gameTimer += tpf * groundRate * groundRate / 100f;
 			
 			if(scoreTextPosX > screenWidth - constScoreTextPosXTrans)
-				scoreTextPosX -= tpf * 150;
+				scoreTextPosX -= tpf * 450;
 		} else if(gameState == States.score) {
 			if(timeTextPosX > constTimeTextPosXOrigin) 
-				timeTextPosX -= tpf * 150;
+				timeTextPosX -= tpf * 450;
 			if(scoreTextPosX < screenWidth + constScoreTextPosXOrigin)
-				scoreTextPosX += tpf * 150;
+				scoreTextPosX += tpf * 450;
 		}
 		
 		//Update the ground
@@ -391,53 +409,59 @@ public class EasterRun implements ApplicationListener {
 		if(gameState == States.play)
 			actPlayer.update(tpf);
 
-		if(gameState == States.play && actPlayer.position.x > 0) actPlayer.position.x -= 15 * tpf;
+		if(gameState == States.play && actPlayer.position.x > constPlayerX) actPlayer.position.x -= 15 * tpf;
 		else if(gameState == States.score && actPlayer.position.x < 20) actPlayer.position.x += groundRate * tpf;
 		//Update eggs
 		//TO ALLOW THE GAME TO RUN OVER THE EGG LIST ONLY ONCE, THE INDIVIDUAL EGGS
 		//ARE UPDATED IN THE RENDER METHOD
 		//CREATE NEW EGGS HERE
-		eggTimer += tpf;
+		if(powerupActive)
+			eggTimer += tpf * constPowerupEffect;
+		else
+			eggTimer += tpf;
+		
+		//Scale eggrate based on time passed
+		eggRate = eggBaseRate - gameTimer / 800f;
+		if(eggRate < eggMaxRate) eggRate = eggMaxRate;
 		if(eggTimer > eggRate && gameState == States.play) {
 			eggTimer = 0;
-			//TODO Refine egg spawning, and bomb spawning
 			//3 slots
-			if(Math.random() > 0.5) { 
-				//Create clone of some egg
-				Actor newEgg = actEggs[0].clone();
-				//Set its position
-				newEgg.position.x = -groundLength * 1.5f;
-				eggs.add(newEgg);
+			for(int curSlot = 0; curSlot < 3; curSlot++) {
+				//Calculate egg type
+				double eggRandType = Math.random();
+				int eggType = 0;
+				if(eggRandType < 0.3) eggType = 0;
+				else if(eggRandType < 0.6) eggType = 1;
+				else if(eggRandType < 0.8) eggType = 2;
+				else if(eggRandType < 0.85) eggType = 3;
+				else if(eggRandType >= 0.85) eggType = 4;
+				
+				//80% chance to spawn egg
+				if(Math.random() > 0.2) {
+					Actor newEgg = actEggs[eggType].clone();
+					newEgg.position.x = -groundLength * 1.5f;
+					newEgg.position.z = -6 + curSlot * 6;
+					eggs.add(newEgg);
+				}
 			}
-			if(Math.random() > 0.5) { 
-				//Create clone of some egg
-				Actor newEgg = actEggs[1].clone();
-				//Set its position
-				newEgg.position.x = -groundLength * 1.5f;
-				newEgg.position.z = 6;
-				eggs.add(newEgg);
-			} else {
-				//Create clone of some egg
-				Actor newEgg = actEggs[3].clone();
-				//Set its position
-				newEgg.position.x = -groundLength * 1.5f;
-				newEgg.position.z = 6;
-				eggs.add(newEgg);
+		}
+		
+		//Update powerup effects
+		if(powerupActive) {
+			powerupTimer += tpf;
+			
+			//Reset when powerup timer hits powerup duration
+			if(powerupTimer > constPowerupDuration) {
+				powerupActive = false;
+				powerupTimer = 0;
+				actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
+
 			}
-			if(Math.random() > 0.5) { 
-				//Create clone of some egg
-				Actor newEgg = actEggs[2].clone();
-				//Set its position
-				newEgg.position.x = -groundLength * 1.5f;
-				newEgg.position.z = -6;
-				eggs.add(newEgg);
+		} else {
+			if(groundRate > constGroundBaseRate) {
+				groundRate -= tpf * 50;
 			} else {
-				//Create clone of some egg
-				Actor newEgg = actEggs[4].clone();
-				//Set its position
-				newEgg.position.x = -groundLength * 1.5f;
-				newEgg.position.z = -6;
-				eggs.add(newEgg);
+				groundRate = constGroundBaseRate;
 			}
 		}
 		
@@ -503,9 +527,18 @@ public class EasterRun implements ApplicationListener {
 		scoreTextScale = 1.5f;
 	}
 	public void onBombHit() {
-		//TODO Hitting bombs not finished
 		gameState = States.dead;
 		actPlayer.model.setMaterial(matPlayerRed);
+	}
+	
+	public void onPowerupHit() {
+		if(!powerupActive) {
+			//If powerup is not already active, increase animation frame rate and ground rate
+			actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / constPowerupEffect;
+			groundRate = constGroundBaseRate * constPowerupEffect;
+		}
+		powerupActive = true;
+		powerupTimer = 0;
 	}
 	
 	//Utility method to find number of digits in a number
