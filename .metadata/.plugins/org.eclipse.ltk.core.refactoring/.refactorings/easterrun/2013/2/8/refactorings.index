@@ -5,3 +5,7 @@
 1361329113757	Rename field 'actEgg1'
 1361337204705	Rename type 'states'
 1361406052011	Rename field 'groundBaseRate'
+1361476601215	Rename package 'com.badlogic.gdx.graphics.g2d'
+1361482243158	Rename field 'ptcSpeedEffect'
+1361482246390	Rename field 'ptcEffectList'
+1361482257806	Rename local variable 'ptcItr'

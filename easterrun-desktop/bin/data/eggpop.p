@@ -5,11 +5,11 @@ active: false
 lowMin: 300.0
 lowMax: 300.0
 - Count -
-min: 6
-max: 6
+min: 8
+max: 8
 - Emission -
-lowMin: 16.0
-lowMax: 16.0
+lowMin: 8
+lowMax: 8
 highMin: 80.0
 highMax: 120.0
 relative: false
@@ -58,8 +58,8 @@ timeline0: 0.0
 - Scale -
 lowMin: 1.0
 lowMax: 1.0
-highMin: 20.0
-highMax: 30.0
+highMin: 5.0
+highMax: 20.0
 relative: false
 scalingCount: 3
 scaling0: 0.29411766
@@ -73,8 +73,8 @@ timeline2: 1.0
 active: true
 lowMin: 0.0
 lowMax: 0.0
-highMin: 10.0
-highMax: 40.0
+highMin: 20.0
+highMax: 280.0
 relative: false
 scalingCount: 3
 scaling0: 0.4117647
@@ -102,28 +102,12 @@ active: false
 - Gravity -
 active: false
 - Tint -
-colorsCount: 15
+colorsCount: 3
 colors0: 1.0
 colors1: 1.0
 colors2: 1.0
-colors3: 1.0
-colors4: 0.9843137
-colors5: 0.0
-colors6: 1.0
-colors7: 0.0
-colors8: 0.0
-colors9: 0.5372549
-colors10: 0.0
-colors11: 0.0
-colors12: 0.8235294
-colors13: 0.8235294
-colors14: 0.8235294
-timelineCount: 5
-timeline0: 0.0
-timeline1: 0.3126177
-timeline2: 0.700565
-timeline3: 0.84934086
-timeline4: 1.0
+timelineCount: 1
+timeline0: 0
 - Transparency -
 lowMin: 0.0
 lowMax: 0.0
@@ -137,7 +121,7 @@ timelineCount: 2
 timeline0: 0.0
 timeline1: 1.0
 - Options -
-attached: false
+attached: true
 continuous: false
 aligned: false
 additive: true

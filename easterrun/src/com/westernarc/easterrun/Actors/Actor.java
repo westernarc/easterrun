@@ -51,7 +51,7 @@ public class Actor {
 		if(!collisionActive) return false;
 		
 		//TODO Currently, all actors have a size of 2
-		if(Math.abs(a.position.x - position.x) < 2 && Math.abs(a.position.z - position.z) < 2) {
+		if(Math.abs(a.position.x - position.x) < 2 && Math.abs(a.position.z - position.z) < 2 && Math.abs(a.position.y - position.y) < 2) {
 			return true;
 		} else {
 			return false;

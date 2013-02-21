@@ -1,0 +1,596 @@
+package com.westernarc.easterrun;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL10;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+import com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry;
+import com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter;
+import com.westernarc.easterrun.Actors.Actor;
+import com.westernarc.easterrun.Actors.AnimActor;
+import com.badlogic.gdx.graphics.g3d.materials.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.materials.Material;
+import com.badlogic.gdx.graphics.g3d.materials.ColorAttribute;
+
+public class EasterRun implements ApplicationListener {
+	float screenWidth;
+	float screenHeight;
+	float tpf;
+	
+	//Use this to switch between g3dt and g3d
+	final boolean exporting = false;
+	
+	final float horizontalMax = 7.3f;
+	final float horizontalMin = -6;
+
+	private PerspectiveCamera gameCamera;
+	private SpriteBatch uiBatch;
+	
+	final int groundMax = 3;
+	final int groundLength = 87;
+	Actor[] actGround;
+	final float constGroundBaseRate = 40;
+	float groundRate;
+	
+	AnimActor actPlayer;
+	Texture txrPlayer;
+	Material matPlayer;
+	Texture txrPlayerRed;
+	Material matPlayerRed;
+	final float constPlayerX = -5;
+	
+	final int eggMax = 5;
+	Actor[] actEggs;
+	ArrayList<Actor> eggs;
+	final float eggBaseRate = 0.7f;
+	final float eggMaxRate = 0.2f;
+	float eggRate;
+	float eggTimer;
+	
+	float gameTimer;
+	float deltaGameTimer;
+	float deltaTimer;
+	int gameScore;
+	int hiScore;
+	
+	float deadTimer;
+	final float deadTimerMax = 1;
+	
+	//Flags
+	enum States {title, play, dead, score};
+	States gameState;
+	boolean scoreStored;
+	
+	//Title sprite, texture and alpha 
+	Sprite sprTitle;
+	Texture txrTitle;
+	float titleAlpha;
+	
+	//Score location, for after player dies
+	float scoreTextPosY = -350;
+	
+	BitmapFont uiFont;
+	//Time and score records
+	final float constTimeTextPosXOrigin = -300;
+	final float constScoreTextPosXOrigin = 280;
+	final float constScoreTextPosXTrans = 70;
+	final float constTimeTextPosXTrans = 40;
+	float timeTextPosX;
+	float scoreTextPosX;
+	float scoreTextScale; 
+	
+	//These variables are for the end score screen
+	String scoreText;
+	String hiScoreText;
+	int scoreIndent;
+	int hiScoreIndent;
+	
+	//Other game variables
+	final float constPowerupDuration = 4;
+	final float constPowerupEffect = 1.1f;
+	boolean powerupActive;
+	float powerupTimer;
+	
+	//TODO: Particle effects
+	//TODO: Gui Tweening
+	//TODO: Music
+	//TODO: Jumping DONE
+	
+	public void initialize() {
+		groundRate = constGroundBaseRate;
+		
+		eggRate = eggBaseRate;
+		eggTimer = 0;
+		eggs = new ArrayList<Actor>();
+		
+		gameTimer = 0;
+		gameScore = 0;
+		
+		gameState = States.title;
+		titleAlpha = 0;
+		
+		actPlayer.position.x = 20;
+		
+		timeTextPosX = constTimeTextPosXOrigin;
+		scoreTextPosX = screenWidth + constScoreTextPosXOrigin;
+
+		deadTimer = 0;
+		
+		actPlayer.model.setMaterial(matPlayer);
+		
+		scoreTextScale = 1;
+		scoreStored = false;
+		
+		powerupActive = false;
+		powerupTimer = 0;
+		
+		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
+	}
+	
+	@Override
+	public void create() {		
+		screenWidth = Gdx.graphics.getWidth();
+		screenHeight = Gdx.graphics.getHeight();
+		
+		if(Gdx.app.getPreferences("gameprefs").getInteger("hiscore",0) == 0) 
+			Gdx.app.getPreferences("gameprefs").putInteger("hiscore", 0);
+		
+		//Set up cameras
+		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
+		gameCamera.near = 0.1f;
+		gameCamera.far = 1000;
+		gameCamera.position.set(0,28,0);
+		gameCamera.lookAt(-20, 0, 0);
+		
+		uiBatch = new SpriteBatch();
+		uiFont = new BitmapFont(Gdx.files.internal("text/BimboJVS_B64OJ.fnt"), false);
+		
+		txrTitle = new Texture(Gdx.files.internal("textures/title.png"));
+		sprTitle = new Sprite(txrTitle);
+		sprTitle.setPosition(screenWidth/2 - sprTitle.getWidth()/2, screenHeight/2 - sprTitle.getHeight()/2);
+		
+		Texture txrEnvTex = new Texture(Gdx.files.internal("textures/grass.png"));
+		Material matEnvMat = new Material("mat", new TextureAttribute(txrEnvTex, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		
+		//Load models
+		//Load ground
+		actGround = new Actor[groundMax];
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i] = new Actor();
+			if(i > 1) {
+				actGround[i].model = actGround[i-1].model;
+			} else {
+				actGround[i].model = loadModel("models/ground");
+			}
+			actGround[i].texture = txrEnvTex;
+			actGround[i].material = matEnvMat;
+			actGround[i].model.setMaterial(matEnvMat);
+			actGround[i].move((i-1) * -87, 0, 0);
+		}
+		
+		//Load player
+		actPlayer = new AnimActor(1,19);
+
+		actPlayer.model = loadModel("models/pascha/player1");
+		
+		//Two textures, one normal one for player getting hit
+		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
+		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		//Set texture to the normal one
+		actPlayer.texture = txrPlayer;
+		actPlayer.material = matPlayer;
+		actPlayer.model.setMaterial(matPlayer);
+		
+		//Load player animation frames
+		for(int curFrame = actPlayer.startIndex; curFrame < actPlayer.modelList.length; curFrame++) {
+			actPlayer.modelList[curFrame] = loadModel("models/pascha/player" + curFrame);
+			actPlayer.modelList[curFrame].setMaterial(matPlayer);
+		}
+		
+		actPlayer.position.x = 20;
+		
+		//Load eggs
+		//EggMax array holds eggMax-2 egg actors, one powerup, and 1 bomb actor
+		actEggs = new Actor[eggMax];
+		for(int i = 1; i <= eggMax; i++) {
+			actEggs[i - 1] = new Actor(Actor.Type.Egg);
+			if(i != eggMax) {
+				//For eggs[0] to eggs[eggMax-1] keep type Egg
+				actEggs[i - 1].model = loadModel("models/egg" + i);
+				if(i == eggMax - 1) actEggs[i - 1].actorType = Actor.Type.Powerup;
+			} else {
+				//Set the type to bomb
+				actEggs[i - 1].model = loadModel("models/bomb");
+				actEggs[i - 1].actorType = Actor.Type.Bomb;
+			}
+			actEggs[i - 1].texture = txrEnvTex;
+			actEggs[i - 1].material = matEnvMat;
+			actEggs[i - 1].model.setMaterial(matEnvMat);
+			
+		}
+		
+		//Initialize variables
+		initialize();
+	}
+
+	@Override
+	public void dispose() {
+		uiBatch.dispose();
+	}
+
+	@Override
+	public void render() {		
+		Gdx.gl10.glClearColor(0.64f, 0.78f, 0.35f, 1);
+		Gdx.gl10.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+
+		//Update game flow timers
+		if(gameState != States.dead) {
+			tpf = Gdx.graphics.getDeltaTime();
+		} else {
+			//gameState == States.dead
+			tpf = 0;
+			deadTimer += Gdx.graphics.getDeltaTime();
+			
+			if(deadTimer > deadTimerMax) {
+				deadTimer = 0;
+				gameState = States.score;
+			}
+		}
+				
+		Gdx.gl10.glEnable(GL10.GL_DEPTH_TEST);
+		Gdx.gl10.glEnable(GL10.GL_TEXTURE_2D);
+		Gdx.gl10.glEnable(GL10.GL_COLOR_MATERIAL);
+		
+		//Draw models
+		gameCamera.update();
+		gameCamera.apply(Gdx.gl10);
+		
+		//Draw ground
+		for(int i = 0; i < groundMax; i++) {
+			Gdx.gl10.glPushMatrix();
+			Gdx.gl10.glTranslatef(actGround[i].position.x, actGround[i].position.y, actGround[i].position.z);
+			actGround[i].model.render();
+			Gdx.gl10.glPopMatrix();
+		}
+		
+		//Draw player
+		Gdx.gl10.glPushMatrix();
+		Gdx.gl10.glTranslatef(actPlayer.position.x, actPlayer.position.y, actPlayer.position.z);
+		actPlayer.model.render();
+		Gdx.gl10.glPopMatrix();
+		
+		//Draw eggs, update them too
+		//Collision with eggs are checked in this loop
+		Iterator<Actor> eggItr = eggs.iterator();
+		while(eggItr.hasNext()) {		
+			//Draw
+			Actor currentEgg = eggItr.next();
+			Gdx.gl10.glPushMatrix();
+			Gdx.gl10.glTranslatef(currentEgg.position.x, currentEgg.position.y, currentEgg.position.z);
+			currentEgg.model.render();
+			Gdx.gl10.glPopMatrix();
+			
+			//Update
+			currentEgg.update(tpf);
+			currentEgg.move(groundRate * tpf, 0, 0);
+			if(currentEgg.position.x > 40 || currentEgg.position.y < -10) eggItr.remove();
+			
+			//If the eggs are near the player, do collision detection
+			if(currentEgg.position.x > -20 && currentEgg.collidesWith(actPlayer) && gameState == States.play) {
+				switch(currentEgg.actorType) {
+				case Bomb:
+					onBombHit();
+					currentEgg.collisionActive = false;
+					break;
+				case Egg:
+					onEggHit(currentEgg);
+					currentEgg.collisionActive = false;
+					break;
+				case Ground:
+					break;
+				case Player:
+					break;
+				case Powerup:
+					onEggHit(currentEgg);
+					onPowerupHit();
+					currentEgg.collisionActive = false;
+					break;
+				default:
+					break;
+				}
+			}
+				
+		}
+		
+		//Update objects
+		update(tpf);
+				
+		//End draw models
+		Gdx.gl10.glDisable(GL10.GL_DEPTH_TEST);
+		Gdx.gl10.glDisable(GL10.GL_TEXTURE_2D);
+		
+		//Draw ui elements over models
+		uiBatch.begin();
+		sprTitle.draw(uiBatch);
+		uiFont.draw(uiBatch, Math.round(gameTimer) + "ft", timeTextPosX, screenHeight - 20);
+		uiFont.setScale(0.5f);
+		uiFont.draw(uiBatch, Math.round(gameTimer * tpf) + "ft/s", timeTextPosX, screenHeight - uiFont.getCapHeight()*2 - 20);
+		uiFont.setScale(1);
+		
+		//Handle score display scaling
+		if(scoreTextScale > 1) scoreTextScale -= tpf  * 4;
+		if(scoreTextScale < 1) scoreTextScale = 1;
+		uiFont.setScale(scoreTextScale);
+		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (numOfDigits(gameScore) * uiFont.getSpaceWidth())*1.5f, screenHeight - 20);
+		uiFont.setScale(1);
+		
+		//Deal with total scores
+		int totalScore = gameScore + (int)gameTimer;
+		//Draw score display if gamestate is States.score
+		if(gameState == States.score) {
+			if(!scoreStored) {
+				Preferences prefs = Gdx.app.getPreferences("gameprefs");
+				prefs.getInteger("hiscore", 0);
+				hiScore = prefs.getInteger("hiscore");
+				scoreText = String.valueOf(totalScore);
+				hiScoreText = String.valueOf(hiScore);
+				scoreIndent = (int)uiFont.getSpaceWidth() * numOfDigits(totalScore);
+				hiScoreIndent = (int)uiFont.getSpaceWidth() *  numOfDigits(hiScore);
+				
+				//If the score is a hiscore, store it
+				if(totalScore > hiScore) {
+					prefs.putInteger("hiscore", totalScore);
+					hiScore = totalScore;
+					prefs.flush();
+				}
+				scoreStored = true;
+			}
+			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1600;
+		} else {
+			if(scoreTextPosY > -350) scoreTextPosY -= tpf * 1600; else scoreTextPosY = -350;
+		}
+		//Only draw the scores if they are within view
+		if(scoreTextPosY > -320) {
+			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 10, scoreTextPosY + 150);
+			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 8, scoreTextPosY - 50);
+			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - scoreIndent, scoreTextPosY + 150 - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
+		}
+		uiBatch.end();
+		//End drawing 2d
+	}
+	public void update(float tpf) {
+		//Update title sprite
+		if(gameState == States.title && titleAlpha < 1) {
+			titleAlpha += tpf * 2;
+			if(titleAlpha > 1) titleAlpha = 1;
+			sprTitle.setColor(1,1,1,titleAlpha);
+		} else if(gameState == States.play && titleAlpha > 0) {
+			titleAlpha -= tpf * 2;
+			if(titleAlpha < 0) titleAlpha = 0;
+			sprTitle.setColor(1,1,1,titleAlpha);
+		}
+		
+		
+		//Handle getting change in distance
+		//Update score displays
+		if(gameState == States.play) {
+			if(timeTextPosX < constTimeTextPosXTrans) {
+				timeTextPosX += tpf * 450;
+			} else {
+				if(deltaGameTimer == 0) {
+					deltaTimer = gameTimer;
+				}
+				gameTimer += tpf * groundRate / 10;
+				deltaGameTimer += tpf;
+				if(deltaGameTimer > 1) {
+					deltaGameTimer = 0;
+					deltaTimer = gameTimer - deltaTimer;
+				}
+			}
+			
+			
+			if(scoreTextPosX > screenWidth - constScoreTextPosXTrans)
+				scoreTextPosX -= tpf * 450;
+		} else if(gameState == States.score) {
+			if(timeTextPosX > constTimeTextPosXOrigin) 
+				timeTextPosX -= tpf * 450;
+			if(scoreTextPosX < screenWidth + constScoreTextPosXOrigin)
+				scoreTextPosX += tpf * 450;
+		}
+		
+		//Update the ground
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i].move(groundRate * tpf, 0, 0);
+			if(actGround[i].position.x > groundLength * 1.5f) {
+				actGround[i].move(-groundMax * groundLength, 0, 0);
+			}
+		}
+		
+		//Update the player
+		if(gameState == States.play)
+			actPlayer.update(tpf);
+
+		if(gameState == States.play && actPlayer.position.x > constPlayerX) actPlayer.position.x -= 15 * tpf;
+		else if(gameState == States.score && actPlayer.position.x < 20) actPlayer.position.x += groundRate * tpf;
+		
+		if(actPlayer.position.y < 0) {
+			actPlayer.position.y = 0; 
+			actPlayer.velocity.y = 0;
+			actPlayer.acceleration.y = 0;
+		}
+		
+		
+		
+		//Update eggs
+		//TO ALLOW THE GAME TO RUN OVER THE EGG LIST ONLY ONCE, THE INDIVIDUAL EGGS
+		//ARE UPDATED IN THE RENDER METHOD
+		//CREATE NEW EGGS HERE
+		if(powerupActive)
+			eggTimer += tpf * constPowerupEffect;
+		else
+			eggTimer += tpf;
+		
+		//Scale eggrate based on time passed
+		eggRate = eggBaseRate - gameTimer / 800f;
+		if(eggRate < eggMaxRate) eggRate = eggMaxRate;
+		if(eggTimer > eggRate && gameState == States.play) {
+			eggTimer = 0;
+			//3 slots
+			for(int curSlot = 0; curSlot < 3; curSlot++) {
+				//Calculate egg type
+				double eggRandType = Math.random();
+				int eggType = 0;
+				if(eggRandType < 0.3) eggType = 0;
+				else if(eggRandType < 0.6) eggType = 1;
+				else if(eggRandType < 0.8) eggType = 2;
+				else if(eggRandType < 0.85) eggType = 3;
+				else if(eggRandType >= 0.85) eggType = 4;
+				
+				//80% chance to spawn egg
+				if(Math.random() > 0.2) {
+					Actor newEgg = actEggs[eggType].clone();
+					newEgg.position.x = -groundLength * 1.5f;
+					newEgg.position.z = -6 + curSlot * 6;
+					eggs.add(newEgg);
+				}
+			}
+		}
+		
+		//Update powerup effects
+		if(powerupActive) {
+			powerupTimer += tpf;
+			if(gameState == States.score)
+				groundRate -= tpf * 50;
+			//Reset when powerup timer hits powerup duration
+			if(powerupTimer > constPowerupDuration) {
+				powerupActive = false;
+				powerupTimer = 0;
+			}
+		} else {
+			if(groundRate > constGroundBaseRate) {
+				groundRate -= tpf * 10;
+				actPlayer.animFrameRate = AnimActor.constDefaultFrameRate * (groundRate / constGroundBaseRate);
+			} else {
+				groundRate = constGroundBaseRate;
+			}
+		}
+		
+		//Handle Input
+		if(Gdx.input.isTouched())
+			handleTouch();
+	}
+	@Override
+	public void resize(int width, int height) {
+	}
+
+	@Override
+	public void pause() {
+	}
+
+	@Override
+	public void resume() {
+	}
+	public void onJump() {
+		if(actPlayer.position.y == 0) {
+			actPlayer.velocity.y = 60;
+			actPlayer.acceleration.y = -200;
+		}
+	}
+	public void handleTouch() {
+		float x = Gdx.input.getX() - screenWidth / 2f;
+		float y = Gdx.input.getY() - screenHeight / 2f;
+		float dX = Gdx.input.getDeltaX();
+		float dY = Gdx.input.getDeltaY();
+		//React to touch depending on state
+		switch(gameState) {
+		case play:
+			//If dY is < than -20 make the player jump
+			if(dY < -30) onJump();
+			actPlayer.position.z += -dX / 16f;
+			if(actPlayer.position.z > horizontalMax)actPlayer.position.z = horizontalMax;
+			else if(actPlayer.position.z < horizontalMin)actPlayer.position.z = horizontalMin;
+			break;
+			
+		case score:
+				//Wait for all eggs to disappear and for score text to come in fully before transitioning state
+				if(eggs.isEmpty() && scoreTextPosY >= screenHeight/2) {
+					initialize();
+					gameState = States.play;
+				}
+			break;
+			
+		case title:
+			//If title is clicked, continue to Play state
+			//Only progress if the title is fully faded in
+			if(titleAlpha == 1)
+				gameState = States.play;
+			break;
+			
+		default:
+			break;
+		
+		}		
+	}
+	
+	public void onEggHit(Actor currentEgg) {
+		//TODO Hitting eggs not specific
+		currentEgg.velocity.y = 50;
+		currentEgg.velocity.x = -70;
+		currentEgg.velocity.z = (float)(Math.random()-0.5) * 30;
+		currentEgg.acceleration.y = -200;
+		currentEgg.acceleration.x = 200;
+		currentEgg.collisionActive = false;
+		gameScore += 10;
+		scoreTextScale = 1.5f;
+	}
+	public void onBombHit() {
+		gameState = States.dead;
+		actPlayer.model.setMaterial(matPlayerRed);
+	}
+	
+	public void onPowerupHit() {
+		//If powerup is not already active, increase animation frame rate and ground rate
+		groundRate = groundRate * constPowerupEffect;
+		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate * (groundRate / constGroundBaseRate);
+		powerupActive = true;
+		powerupTimer = 0;
+	}
+	
+	//Utility method to find number of digits in a number
+	//Used for centering text and score
+	private int numOfDigits(int in) {
+		int numOfDigits = 1;
+		while(in > 1) {
+			in /= 10;
+			numOfDigits++;
+		}
+		return numOfDigits;
+	}
+	
+	private StillModel loadModel(String path) {
+		StillModel model;
+		if(exporting) {
+			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3dt"));
+			G3dExporter.export(model, Gdx.files.absolute(path));
+		} else {
+			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3d"));
+		}
+		return model;
+	}
+}

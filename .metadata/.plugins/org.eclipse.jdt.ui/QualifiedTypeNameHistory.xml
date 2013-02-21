@@ -2,7 +2,6 @@
 <qualifiedTypeNameHistroy>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.PerspectiveCamera"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry"/>
-<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.model.still.StillModel"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.Texture"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.math.Vector3"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.Actor"/>
@@ -10,4 +9,9 @@
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.Color"/>
 <fullyQualifiedTypeName name="java.util.ArrayList"/>
 <fullyQualifiedTypeName name="java.util.Iterator"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.model.still.StillModel"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.AnimActor"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.Preferences"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.Actor.Type"/>
 </qualifiedTypeNameHistroy>
