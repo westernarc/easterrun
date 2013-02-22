@@ -1,0 +1,7 @@
+package com.westernarc.easterrun.Actors;
+
+public class ActorAnimation {
+	public String animname;
+	public int startIndex;
+	public int endIndex;
+}

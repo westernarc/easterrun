@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry;
 import com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter;
 import com.westernarc.easterrun.Actors.Actor;
 import com.westernarc.easterrun.Actors.AnimActor;
+import com.westernarc.easterrun.Actors.PlayerActor;
 import com.badlogic.gdx.graphics.g3d.materials.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.materials.Material;
 import com.badlogic.gdx.graphics.g3d.materials.ColorAttribute;
@@ -49,7 +50,7 @@ public class EasterRun implements ApplicationListener {
 	final float constGroundMaxRate = 160;
 	float groundRate;
 	
-	AnimActor actPlayer;
+	PlayerActor actPlayer;
 	Texture txrPlayer;
 	Material matPlayer;
 	Texture txrPlayerRed;
@@ -60,7 +61,7 @@ public class EasterRun implements ApplicationListener {
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
 	final float eggBaseRate = 0.7f;
-	final float eggMaxRate = 0.2f;
+	final float eggMaxRate = 0.1f;
 	float eggRate;
 	float eggTimer;
 	
@@ -112,11 +113,7 @@ public class EasterRun implements ApplicationListener {
 	//Particles
 	ArrayList<ParticleEffect> prtEffectList;
 	ParticleEffect[] prtSpeedEffect;
-	
-	//TODO: Gui Tweening
-	//TODO: Music
-	//TODO: Jumping DONE
-	
+		
 	public void initialize() {
 		groundRate = constGroundBaseRate;
 		
@@ -213,10 +210,8 @@ public class EasterRun implements ApplicationListener {
 		}
 		
 		//Load player
-		actPlayer = new AnimActor(1,19);
-
+		actPlayer = new PlayerActor();
 		actPlayer.model = loadModel("models/pascha/player1");
-		
 		//Two textures, one normal one for player getting hit
 		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
 		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
@@ -228,12 +223,22 @@ public class EasterRun implements ApplicationListener {
 		actPlayer.model.setMaterial(matPlayer);
 		
 		//Load player animation frames
-		for(int curFrame = actPlayer.startIndex; curFrame < actPlayer.modelList.length; curFrame++) {
-			actPlayer.modelList[curFrame] = loadModel("models/pascha/player" + curFrame);
-			actPlayer.modelList[curFrame].setMaterial(matPlayer);
+		for(int curFrame = 1; curFrame < 20; curFrame++) {
+			actPlayer.walkFrames[curFrame] = loadModel("models/pascha/player" + curFrame);
+			actPlayer.walkFrames[curFrame].setMaterial(matPlayer);
 		}
-		
+		for(int curFrame = 1; curFrame < 10; curFrame++) {
+			actPlayer.runFrames[curFrame] = loadModel("models/pascharun/run" + curFrame);
+			actPlayer.runFrames[curFrame].setMaterial(matPlayer);
+		}
+		for(int curFrame = 1; curFrame < 5; curFrame++) {
+			actPlayer.flyFrames[curFrame] = loadModel("models/paschafly/flight" + curFrame);
+			actPlayer.flyFrames[curFrame].setMaterial(matPlayer);
+		}
+		actPlayer.jumpFrames[1] = loadModel("models/paschajump/jump1");
+		actPlayer.jumpFrames[1].setMaterial(matPlayer);
 		actPlayer.position.x = 20;
+		actPlayer.setAnim(PlayerActor.anims.walk);
 		
 		//Load eggs
 		//EggMax array holds eggMax-2 egg actors, one powerup, and 1 bomb actor
@@ -496,7 +501,7 @@ public class EasterRun implements ApplicationListener {
 				scoreTextPosX += tpf * 450;
 		}
 		
-		//Update the ground
+		//Update ground
 		for(int i = 0; i < groundMax; i++) {
 			actGround[i].move(groundRate * tpf, 0, 0);
 			if(actGround[i].position.x > groundLength * 1.5f) {
@@ -504,9 +509,25 @@ public class EasterRun implements ApplicationListener {
 			}
 		}
 		
-		//Update the player
-		if(gameState == States.play)
+		//Update player
+		if(gameState == States.play) {
 			actPlayer.update(tpf);
+			if(deltaTime2 < 6) {
+				if(actPlayer.position.y > 0) {
+					actPlayer.setAnim(PlayerActor.anims.jump);
+				} else {
+					actPlayer.setAnim(PlayerActor.anims.walk);
+				}
+			} else if(deltaTime2 < 12) {
+				if(actPlayer.position.y > 0) {
+					actPlayer.setAnim(PlayerActor.anims.fly);
+				} else {
+					actPlayer.setAnim(PlayerActor.anims.run);
+				}
+			} else {
+				actPlayer.setAnim(PlayerActor.anims.fly);
+			}
+		}
 
 		if(gameState == States.play && actPlayer.position.x > constPlayerX) actPlayer.position.x -= 15 * tpf;
 		else if(gameState == States.score && actPlayer.position.x < 20) actPlayer.position.x += groundRate * tpf;
@@ -516,7 +537,6 @@ public class EasterRun implements ApplicationListener {
 			actPlayer.velocity.y = 0;
 			actPlayer.acceleration.y = 0;
 		}
-		
 		
 		
 		//Update eggs
@@ -717,7 +737,7 @@ public class EasterRun implements ApplicationListener {
 		StillModel model;
 		if(exporting) {
 			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3dt"));
-			G3dExporter.export(model, Gdx.files.absolute(path));
+			G3dExporter.export(model, Gdx.files.absolute(path + ".g3d"));
 		} else {
 			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3d"));
 		}

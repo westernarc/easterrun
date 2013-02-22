@@ -1,0 +1,10 @@
+package com.westernarc.easterrun.Actors;
+
+public class PlayerActor extends AnimActor {
+	public enum anims {walk, run, fly, jump}
+	public PlayerActor() {
+		super(start, end);
+		// TODO Auto-generated constructor stub
+	}
+
+}

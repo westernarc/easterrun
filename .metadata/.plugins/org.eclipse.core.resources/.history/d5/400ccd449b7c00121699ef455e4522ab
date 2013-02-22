@@ -1,0 +1,19 @@
+package com.westernarc.easterrun.Actors;
+
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+
+public class PlayerActor extends Actor {
+	public enum anims {walk, run, fly, jump}
+	public StillModel[] walkFrames;
+	public StillModel[] runFrames;
+	public StillModel[] flyFrames;
+	public StillModel[] jumpFrames;
+	
+	public PlayerActor() {
+	}
+	
+	public void update(float tpf) {
+		super.update(tpf);
+	}
+
+}

@@ -1,0 +1,12 @@
+package com.westernarc.easterrun.Actors;
+
+public class ActorAnimation {
+	public int animid;
+	public int startIndex;
+	public int endIndex;
+	public ActorAnimation(int an, int si, int ei) {
+		animid = an;
+		startIndex = si;
+		endIndex = ei;
+	}
+}
