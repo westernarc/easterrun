@@ -1,0 +1,6 @@
+package com.westernarc.easterrun.Actors;
+
+public class GroundActor extends Actor {
+	public enum GROUNDS {straight, corner}
+	public GROUNDS type;
+}

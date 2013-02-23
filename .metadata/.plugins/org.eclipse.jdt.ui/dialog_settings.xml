@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
+	<item value="C:\eclipse\workspace\libgdx-0.9.6\sources" key="org.eclipse.jdt.ui.lastextjar"/>
 	<section name="OptionalMessageDialog.hide.">
 		<item value="true" key="org.eclipse.jdt.ui.typecomment.deprecated"/>
 	</section>
@@ -14,18 +15,27 @@
 	</section>
 	<section name="JavaElementSearchActions">
 	</section>
+	<section name="BuildPathsPropertyPage">
+		<item value="2" key="pageIndex"/>
+	</section>
 	<section name="FatJarPackageWizard">
-		<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_20.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
+		<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_21.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
 		<item value="Main - easterrun-desktop" key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME"/>
 		<item value="C:\eclipse\workspace\easterrun" key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION"/>
 		<item value="false" key="FatJarPackageWizardPage.ANTSCRIPT_SAVE"/>
 		<item value="2" key="FatJarPackageWizardPage.LIBRARY_HANDLING"/>
 		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_21.jar"/>
 			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_20.jar"/>
 		</list>
 		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">
+			<item value="C:\eclipse\workspace\easterrun.xml"/>
 			<item value=".xml"/>
 		</list>
+	</section>
+	<section name="RefactoringWizard.preview">
+		<item value="400" key="height"/>
+		<item value="600" key="width"/>
 	</section>
 	<section name="NewClassWizardPage">
 		<item value="false" key="create_constructor"/>
@@ -33,6 +43,10 @@
 		<item value="false" key="create_main"/>
 	</section>
 	<section name="org.eclipse.ltk.ui.refactoring.settings">
+		<item value="false" key="renameSubpackages"/>
+		<item value="false" key="updateQualifiedNames"/>
+		<item value="*" key="patterns"/>
+		<item value="false" key="updateTextualMatches"/>
 	</section>
 	<section name="RenameInformationPopup">
 	</section>

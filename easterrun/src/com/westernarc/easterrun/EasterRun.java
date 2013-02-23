@@ -5,7 +5,10 @@ import java.util.Iterator;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -21,6 +24,7 @@ import com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry;
 import com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter;
 import com.westernarc.easterrun.Actors.Actor;
 import com.westernarc.easterrun.Actors.AnimActor;
+import com.westernarc.easterrun.Actors.GroundActor;
 import com.westernarc.easterrun.Actors.PlayerActor;
 import com.badlogic.gdx.graphics.g3d.materials.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.materials.Material;
@@ -43,9 +47,13 @@ public class EasterRun implements ApplicationListener {
 	private SpriteBatch uiBatch;
 	private SpriteBatch gameBatch;
 	
+	//Ground
 	final int groundMax = 3;
-	final int groundLength = 87;
-	Actor[] actGround;
+	final int groundLength = 348;
+	GroundActor[] actGround;
+	StillModel mdlGroundStraight;
+	StillModel mdlGroundCornerR;
+	StillModel mdlGroundCornerL;
 	final float constGroundBaseRate = 40;
 	final float constGroundMaxRate = 160;
 	float groundRate;
@@ -109,11 +117,21 @@ public class EasterRun implements ApplicationListener {
 	final float constPowerupEffect = 1.1f;
 	boolean powerupActive;
 	float powerupTimer;
+		//For corners
+	boolean placeCorner;
+	boolean cornerPlaced;
+	int cornerLastPlaced;
+	int groundCornerIndex;
 	
 	//Particles
 	ArrayList<ParticleEffect> prtEffectList;
 	ParticleEffect[] prtSpeedEffect;
 		
+	//Audio
+	Music musBackground;
+	Sound sndDeath;
+	Sound sndEgg;
+	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
 		
@@ -135,7 +153,7 @@ public class EasterRun implements ApplicationListener {
 		deadTimer = 0;
 		
 		actPlayer.model.setMaterial(matPlayer);
-		
+		actPlayer.rotation.set(0,0,0);
 		scoreTextScale = 1;
 		scoreStored = false;
 		
@@ -165,6 +183,10 @@ public class EasterRun implements ApplicationListener {
 		prtSpeedEffect[0].setPosition(0,screenHeight/3);
 		prtSpeedEffect[1].setPosition(0,screenHeight/3);
 		prtSpeedEffect[2].setPosition(0,screenHeight*2f/5f);
+		
+		placeCorner = false;
+		cornerPlaced = false;
+		groundCornerIndex = -1;
 	}
 	
 	@Override
@@ -179,7 +201,7 @@ public class EasterRun implements ApplicationListener {
 		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
 		gameCamera.near = 0.1f;
 		gameCamera.far = 1000;
-		gameCamera.position.set(0,28,0);
+		gameCamera.position.set(0,28,0);	
 		gameCamera.lookAt(-20, 0, 0);
 		
 		uiBatch = new SpriteBatch();
@@ -195,18 +217,21 @@ public class EasterRun implements ApplicationListener {
 		
 		//Load models
 		//Load ground
-		actGround = new Actor[groundMax];
+		actGround = new GroundActor[groundMax];
+		mdlGroundStraight = loadModel("models/ground");
+		mdlGroundCornerR = loadModel("models/corner");
+		mdlGroundCornerL = loadModel("models/cornerL");
+		mdlGroundStraight.setMaterial(matEnvMat);
+		mdlGroundCornerR.setMaterial(matEnvMat);
+		mdlGroundCornerL.setMaterial(matEnvMat);
+		
 		for(int i = 0; i < groundMax; i++) {
-			actGround[i] = new Actor();
-			if(i > 1) {
-				actGround[i].model = actGround[i-1].model;
-			} else {
-				actGround[i].model = loadModel("models/ground");
-			}
+			actGround[i] = new GroundActor();
+			actGround[i].type = GroundActor.GROUNDS.straight;
+			actGround[i].model = mdlGroundStraight;
 			actGround[i].texture = txrEnvTex;
 			actGround[i].material = matEnvMat;
-			actGround[i].model.setMaterial(matEnvMat);
-			actGround[i].move((i-1) * -87, 0, 0);
+			actGround[i].move((i-1) * -groundLength, 0, 0);
 		}
 		
 		//Load player
@@ -235,8 +260,10 @@ public class EasterRun implements ApplicationListener {
 			actPlayer.flyFrames[curFrame] = loadModel("models/paschafly/flight" + curFrame);
 			actPlayer.flyFrames[curFrame].setMaterial(matPlayer);
 		}
-		actPlayer.jumpFrames[1] = loadModel("models/paschajump/jump1");
-		actPlayer.jumpFrames[1].setMaterial(matPlayer);
+		for(int curFrame = 1; curFrame < 10; curFrame++) {
+			actPlayer.jumpFrames[curFrame] = loadModel("models/paschajump/jump" + curFrame);
+			actPlayer.jumpFrames[curFrame].setMaterial(matPlayer);
+		}
 		actPlayer.position.x = 20;
 		actPlayer.setAnim(PlayerActor.anims.walk);
 		
@@ -251,7 +278,7 @@ public class EasterRun implements ApplicationListener {
 				if(i == eggMax - 1) actEggs[i - 1].actorType = Actor.Type.Powerup;
 			} else {
 				//Set the type to bomb
-				actEggs[i - 1].model = loadModel("models/bomb");
+				actEggs[i - 1].model = loadModel("models/rock");
 				actEggs[i - 1].actorType = Actor.Type.Bomb;
 			}
 			actEggs[i - 1].texture = txrEnvTex;
@@ -259,6 +286,13 @@ public class EasterRun implements ApplicationListener {
 			actEggs[i - 1].model.setMaterial(matEnvMat);
 		}
 		
+		
+		//Load audio
+		musBackground = Gdx.audio.newMusic(Gdx.files.internal("audio/bgm.mp3"));
+		musBackground.setLooping(true);
+		musBackground.play();
+		sndDeath = Gdx.audio.newSound(Gdx.files.internal("audio/clang.wav"));
+		sndEgg = Gdx.audio.newSound(Gdx.files.internal("audio/pop.wav"));
 		//Initialize variables
 		initialize();
 		//Vars to only be initialized once
@@ -303,6 +337,7 @@ public class EasterRun implements ApplicationListener {
 		for(int i = 0; i < groundMax; i++) {
 			Gdx.gl10.glPushMatrix();
 			Gdx.gl10.glTranslatef(actGround[i].position.x, actGround[i].position.y, actGround[i].position.z);
+			Gdx.gl10.glRotatef(actGround[i].rotation.y, 0, 1, 0);
 			actGround[i].model.render();
 			Gdx.gl10.glPopMatrix();
 		}
@@ -310,6 +345,7 @@ public class EasterRun implements ApplicationListener {
 		//Draw player
 		Gdx.gl10.glPushMatrix();
 		Gdx.gl10.glTranslatef(actPlayer.position.x, actPlayer.position.y, actPlayer.position.z);
+		Gdx.gl10.glRotatef(actPlayer.rotation.y, 0, 1, 0);
 		actPlayer.model.render();
 		Gdx.gl10.glPopMatrix();
 		
@@ -504,8 +540,73 @@ public class EasterRun implements ApplicationListener {
 		//Update ground
 		for(int i = 0; i < groundMax; i++) {
 			actGround[i].move(groundRate * tpf, 0, 0);
-			if(actGround[i].position.x > groundLength * 1.5f) {
+			if(actGround[i].type == GroundActor.GROUNDS.cornerR) {
+				
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20) {
+					cornerPlaced = true;
+				} 
+				if(actGround[i].position.x > -20) {
+					if(actPlayer.position.z > -1 && cornerPlaced && gameState == States.play) {
+						onBombHit();
+						actPlayer.rotation.set(0, 90, 0);
+						actPlayer.position.z = 5.5f;
+						actPlayer.position.x = -15;
+					}
+					if(actGround[i].rotation.y < 90) {
+						actGround[i].rotation.set(0,actGround[i].rotation.y + groundRate/10f,0);
+					} else {
+						actGround[i].rotation.set(0,90,0);
+					}
+					cornerPlaced = false;
+				}
+			} else if(actGround[i].type == GroundActor.GROUNDS.cornerL) {
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20) {
+					cornerPlaced = true;
+				} 
+				if(actGround[i].position.x > -20) {
+					if(actPlayer.position.z < 1 && cornerPlaced && gameState == States.play) {
+						onBombHit();
+						actPlayer.rotation.set(0, -90, 0);
+						actPlayer.position.z = -5.5f;
+						actPlayer.position.x = -15;
+					}
+					if(actGround[i].rotation.y > -90) {
+						actGround[i].rotation.set(0,actGround[i].rotation.y - groundRate/10f,0);
+					} else {
+						actGround[i].rotation.set(0,-90,0);
+						
+					}
+					cornerPlaced = false;
+				}
+			}
+			
+			if(actGround[i].position.x > groundLength) {
+				//Chance to trigger turn: 0.05
+				placeCorner = (Math.random() > 0.0f && cornerLastPlaced == 0) ? true : false;
+				cornerLastPlaced++;
+				if(cornerLastPlaced > groundMax) cornerLastPlaced = 0;
+				if(actGround[i].type == GroundActor.GROUNDS.cornerL || actGround[i].type == GroundActor.GROUNDS.cornerR) {
+					actGround[i].type = GroundActor.GROUNDS.straight;
+					actGround[i].model = mdlGroundStraight;
+					actGround[i].rotation.set(0,0,0);
+					actGround[i].move(groundLength/2, 0, 0);
+					
+				}
+				
 				actGround[i].move(-groundMax * groundLength, 0, 0);
+				if(placeCorner) {
+					//50/50 chance for the turn to be left or right.  Not important
+					if(Math.random() < 0.5) {
+						actGround[i].model = mdlGroundCornerL;
+						actGround[i].type = GroundActor.GROUNDS.cornerL;
+					} else {
+						actGround[i].model = mdlGroundCornerR;
+						actGround[i].type = GroundActor.GROUNDS.cornerR;
+					}
+					actGround[i].move(-groundLength/2, 0, 0);
+					placeCorner = false;
+					groundCornerIndex = i;
+				} 
 			}
 		}
 		
@@ -544,14 +645,15 @@ public class EasterRun implements ApplicationListener {
 		//ARE UPDATED IN THE RENDER METHOD
 		//CREATE NEW EGGS HERE
 		if(powerupActive)
-			eggTimer += tpf * constPowerupEffect;
+			eggTimer += tpf * (groundRate / constGroundBaseRate);
 		else
 			eggTimer += tpf;
 		
 		//Scale eggrate based on time passed
-		eggRate = eggBaseRate - gameTimer / 800f;
+		eggRate = eggBaseRate - (gameTimer / 800f) * eggBaseRate;
 		if(eggRate < eggMaxRate) eggRate = eggMaxRate;
-		if(eggTimer > eggRate && gameState == States.play) {
+		
+		if(eggTimer > eggRate && gameState == States.play && !cornerPlaced) {
 			eggTimer = 0;
 			//3 slots
 			for(int curSlot = 0; curSlot < 3; curSlot++) {
@@ -561,19 +663,18 @@ public class EasterRun implements ApplicationListener {
 				if(eggRandType < 0.3) eggType = 0;
 				else if(eggRandType < 0.6) eggType = 1;
 				else if(eggRandType < 0.8) eggType = 2;
-				else if(eggRandType < 0.85) eggType = 3;
-				else if(eggRandType >= 0.85) eggType = 4;
+				else if(eggRandType < 0.88) eggType = 3;
+				else if(eggRandType >= 0.88) eggType = 4;
 				
 				//80% chance to spawn egg
 				if(Math.random() > 0.2) {
 					Actor newEgg = actEggs[eggType].clone();
-					newEgg.position.x = -groundLength * 1.5f;
+					newEgg.position.x = -groundLength * 0.5f;
 					newEgg.position.z = -6 + curSlot * 6;
 					eggs.add(newEgg);
 				}
 			}
 		}
-		
 		
 		if(gameState == States.score) {
 			if(groundRate > constGroundBaseRate){
@@ -622,6 +723,9 @@ public class EasterRun implements ApplicationListener {
 		}
 	}
 	public void handleTouch() {
+		if(Gdx.input.isKeyPressed(Keys.D)){
+			placeCorner = true;
+		}
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
 		float dX = Gdx.input.getDeltaX();
@@ -704,10 +808,12 @@ public class EasterRun implements ApplicationListener {
 			prtVector.x += screenWidth/4;
 		
 		createParticleEffect(prtVector, "data/eggpop.p", "textures/");
+		sndEgg.play();
 	}
 	public void onBombHit() {
 		gameState = States.dead;
 		actPlayer.model.setMaterial(matPlayerRed);
+		sndDeath.play();
 	}
 	
 	public void onPowerupHit() {

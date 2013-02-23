@@ -3,15 +3,21 @@
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.PerspectiveCamera"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.Texture"/>
-<fullyQualifiedTypeName name="com.badlogic.gdx.math.Vector3"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.Actor"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.materials.Material"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.Color"/>
 <fullyQualifiedTypeName name="java.util.ArrayList"/>
 <fullyQualifiedTypeName name="java.util.Iterator"/>
-<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.model.still.StillModel"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.AnimActor"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.Preferences"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.Actor.Type"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g2d.ParticleEffect"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun.States"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.graphics.g3d.model.still.StillModel"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.PlayerActor"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.PlayerActor.anims"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.math.Vector3"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.audio.Music"/>
+<fullyQualifiedTypeName name="com.badlogic.gdx.audio.Sound"/>
 </qualifiedTypeNameHistroy>
