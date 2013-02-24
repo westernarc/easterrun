@@ -24,7 +24,7 @@ public class PlayerActor extends Actor {
 		walkFrames = new StillModel[20];
 		runFrames = new StillModel[10];
 		flyFrames = new StillModel[5];
-		jumpFrames = new StillModel[10];
+		jumpFrames = new StillModel[7];
 		currentAnim = anims.walk;
 		
 		currentFrame = 1;
@@ -41,13 +41,14 @@ public class PlayerActor extends Actor {
 			animFrameTimer = 0;
 			currentFrame++;
 		}
+		
 		switch(currentAnim) {
 		case fly:
 			if(currentFrame > 4) currentFrame = 1;
 			model = flyFrames[currentFrame];
 			break;
 		case jump:
-			if(currentFrame > 9) currentFrame = 7;
+			if(currentFrame > 6) currentFrame = 6;
 			model = jumpFrames[currentFrame];
 			break;
 		case run:

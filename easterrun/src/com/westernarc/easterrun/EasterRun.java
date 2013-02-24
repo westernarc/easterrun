@@ -54,7 +54,9 @@ public class EasterRun implements ApplicationListener {
 	StillModel mdlGroundStraight;
 	StillModel mdlGroundCornerR;
 	StillModel mdlGroundCornerL;
-	final float constGroundBaseRate = 40;
+	StillModel mdlGroundOutcrop;
+	StillModel mdlGroundBridge;
+	final float constGroundBaseRate = 50;
 	final float constGroundMaxRate = 160;
 	float groundRate;
 	
@@ -69,7 +71,7 @@ public class EasterRun implements ApplicationListener {
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
 	final float eggBaseRate = 0.7f;
-	final float eggMaxRate = 0.1f;
+	final float eggMaxRate = 0.2f;
 	float eggRate;
 	float eggTimer;
 	
@@ -84,7 +86,7 @@ public class EasterRun implements ApplicationListener {
 	final float deadTimerMax = 1;
 	
 	//Flags
-	enum States {title, play, dead, score};
+	enum States {title, play, dead, score, reset};
 	States gameState;
 	boolean scoreStored;
 	
@@ -92,6 +94,13 @@ public class EasterRun implements ApplicationListener {
 	Sprite sprTitle;
 	Texture txrTitle;
 	float titleAlpha;
+	
+	//Game reset texture and alpha
+	Sprite sprReset;
+	Texture txrReset;
+	float resetAlpha;
+	float resetTimer;
+	float resetTimerMax = 0.1f;
 	
 	//Score location, for after player dies
 	float scoreTextPosY;
@@ -117,11 +126,17 @@ public class EasterRun implements ApplicationListener {
 	final float constPowerupEffect = 1.1f;
 	boolean powerupActive;
 	float powerupTimer;
-		//For corners
+	final int constEggLimit = 3;
+	int eggsFromLastSpawn;
+	int eggsFromThisSpawn;
+		//For alternate grounds
 	boolean placeCorner;
 	boolean cornerPlaced;
 	int cornerLastPlaced;
-	int groundCornerIndex;
+	boolean placeBridge;
+	int bridgeLastPlaced;
+	boolean placeOutcrop;
+	int outcropLastPlaced;
 	
 	//Particles
 	ArrayList<ParticleEffect> prtEffectList;
@@ -186,7 +201,15 @@ public class EasterRun implements ApplicationListener {
 		
 		placeCorner = false;
 		cornerPlaced = false;
-		groundCornerIndex = -1;
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i].type = GroundActor.GROUNDS.straight;
+			actGround[i].model = mdlGroundStraight;
+			actGround[i].position.set((i-1) * -groundLength, 0, 0);
+			actGround[i].rotation.set(0,0,0);
+		}
+
+		sprReset.setColor(1,1,1,resetAlpha);
+		resetTimer = 0;
 	}
 	
 	@Override
@@ -211,6 +234,16 @@ public class EasterRun implements ApplicationListener {
 		txrTitle = new Texture(Gdx.files.internal("textures/title.png"));
 		sprTitle = new Sprite(txrTitle);
 		sprTitle.setPosition(screenWidth/2 - sprTitle.getWidth()/2, screenHeight/2 - sprTitle.getHeight()/2);
+		if(screenWidth > screenHeight) {
+			sprTitle.setScale(screenHeight / sprTitle.getHeight());
+		} else {
+			sprTitle.setScale(screenWidth / sprTitle.getWidth());
+		}
+		
+		txrReset = new Texture(Gdx.files.internal("textures/reset.png"));
+		sprReset = new Sprite(txrReset);
+		sprReset.scale(screenHeight * 1.5f / sprReset.getWidth());
+		sprReset.setPosition(screenWidth/2 - sprReset.getWidth()/2, screenHeight/2 - sprReset.getHeight()/2);
 		
 		Texture txrEnvTex = new Texture(Gdx.files.internal("textures/grass.png"));
 		Material matEnvMat = new Material("mat", new TextureAttribute(txrEnvTex, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
@@ -221,9 +254,13 @@ public class EasterRun implements ApplicationListener {
 		mdlGroundStraight = loadModel("models/ground");
 		mdlGroundCornerR = loadModel("models/corner");
 		mdlGroundCornerL = loadModel("models/cornerL");
+		mdlGroundBridge = loadModel("models/bridge");
+		mdlGroundOutcrop = loadModel("models/outcrop");
 		mdlGroundStraight.setMaterial(matEnvMat);
 		mdlGroundCornerR.setMaterial(matEnvMat);
 		mdlGroundCornerL.setMaterial(matEnvMat);
+		mdlGroundBridge.setMaterial(matEnvMat);
+		mdlGroundOutcrop.setMaterial(matEnvMat);
 		
 		for(int i = 0; i < groundMax; i++) {
 			actGround[i] = new GroundActor();
@@ -260,7 +297,7 @@ public class EasterRun implements ApplicationListener {
 			actPlayer.flyFrames[curFrame] = loadModel("models/paschafly/flight" + curFrame);
 			actPlayer.flyFrames[curFrame].setMaterial(matPlayer);
 		}
-		for(int curFrame = 1; curFrame < 10; curFrame++) {
+		for(int curFrame = 1; curFrame < 7; curFrame++) {
 			actPlayer.jumpFrames[curFrame] = loadModel("models/paschajump/jump" + curFrame);
 			actPlayer.jumpFrames[curFrame].setMaterial(matPlayer);
 		}
@@ -299,6 +336,7 @@ public class EasterRun implements ApplicationListener {
 		scoreText = "0";
 		hiScoreText = "0";
 		scoreTextPosY = -screenHeight;
+		resetAlpha = 0;
 	}
 
 	@Override
@@ -324,6 +362,9 @@ public class EasterRun implements ApplicationListener {
 				gameState = States.score;
 			}
 		}
+				
+		//Update objects
+		update(tpf);
 				
 		Gdx.gl10.glEnable(GL10.GL_DEPTH_TEST);
 		Gdx.gl10.glEnable(GL10.GL_TEXTURE_2D);
@@ -391,10 +432,7 @@ public class EasterRun implements ApplicationListener {
 			}
 				
 		}
-
-		//Update objects
-		update(tpf);
-				
+	
 		//End draw models
 		Gdx.gl10.glDisable(GL10.GL_DEPTH_TEST);
 		Gdx.gl10.glDisable(GL10.GL_TEXTURE_2D);
@@ -416,7 +454,7 @@ public class EasterRun implements ApplicationListener {
 		}
 
 		//Speed effect particles
-		if(deltaTime2 > 6 && gameState == States.play) {
+		if(deltaTime2 > 8 && gameState == States.play) {
 			float prtX = 0;
 			float prtY = 0;
 			if(actPlayer.position.z > 5) {
@@ -431,12 +469,12 @@ public class EasterRun implements ApplicationListener {
 			prtSpeedEffect[0].update(tpf);
 			prtSpeedEffect[0].draw(gameBatch);
 			
-			if(deltaTime2 > 9) {
+			if(deltaTime2 > 10) {
 				prtSpeedEffect[1].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
 				prtSpeedEffect[1].update(tpf);
 				prtSpeedEffect[1].draw(gameBatch);
 				
-				if(deltaTime2 > 13) {
+				if(deltaTime2 > 12) {
 					prtSpeedEffect[2].setPosition((screenWidth/2) + prtX, screenHeight*2/5f + prtY);
 					prtSpeedEffect[2].update(tpf);
 					prtSpeedEffect[2].draw(gameBatch);
@@ -483,9 +521,9 @@ public class EasterRun implements ApplicationListener {
 				}
 				scoreStored = true;
 			}
-			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1600;
+			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1200;
 		} else {
-			if(scoreTextPosY > -screenHeight) scoreTextPosY -= tpf * 1600; else scoreTextPosY = -350;
+			if(scoreTextPosY > -screenHeight) scoreTextPosY -= tpf * 1200; else scoreTextPosY = -screenHeight;
 		}
 		//Only draw the scores if they are within view
 		if(scoreTextPosY > -320) {
@@ -494,6 +532,9 @@ public class EasterRun implements ApplicationListener {
 			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - scoreIndent, scoreTextPosY + 150 - uiFont.getLineHeight());
 			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
 		}
+		
+		//If the game is being reset draw reset fader
+		sprReset.draw(uiBatch);
 		uiBatch.end();
 		//End drawing 2d
 	}
@@ -503,12 +544,30 @@ public class EasterRun implements ApplicationListener {
 			titleAlpha += tpf * 2;
 			if(titleAlpha > 1) titleAlpha = 1;
 			sprTitle.setColor(1,1,1,titleAlpha);
-		} else if(gameState == States.play && titleAlpha > 0) {
+		} else if(gameState != States.title && titleAlpha > 0) {
 			titleAlpha -= tpf * 2;
 			if(titleAlpha < 0) titleAlpha = 0;
 			sprTitle.setColor(1,1,1,titleAlpha);
 		}
-		
+		//Update reset sprite
+		if(gameState == States.reset && resetAlpha < 1) {
+			resetAlpha += tpf * 2;
+			if(resetAlpha > 1) {
+				resetAlpha = 1;
+			}
+			sprReset.setColor(1,1,1,resetAlpha);
+		}else if(gameState == States.reset && resetAlpha == 1) {
+			resetTimer += tpf;
+			if(resetTimer >= resetTimerMax) {
+				resetTimer = 0;
+				initialize();
+				gameState = States.play;
+			}
+		}else if (gameState != States.reset && resetAlpha > 0) {
+			resetAlpha -= tpf * 2;
+			if(resetAlpha < 0) resetAlpha = 0;
+			sprReset.setColor(1,1,1,resetAlpha);
+		}
 		
 		//Handle getting change in distance
 		//Update score displays
@@ -542,7 +601,7 @@ public class EasterRun implements ApplicationListener {
 			actGround[i].move(groundRate * tpf, 0, 0);
 			if(actGround[i].type == GroundActor.GROUNDS.cornerR) {
 				
-				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20) {
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
 				} 
 				if(actGround[i].position.x > -20) {
@@ -560,7 +619,7 @@ public class EasterRun implements ApplicationListener {
 					cornerPlaced = false;
 				}
 			} else if(actGround[i].type == GroundActor.GROUNDS.cornerL) {
-				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20) {
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
 				} 
 				if(actGround[i].position.x > -20) {
@@ -580,9 +639,11 @@ public class EasterRun implements ApplicationListener {
 				}
 			}
 			
+			//Ground has gone past player; reset its position.  'recycle' it.
 			if(actGround[i].position.x > groundLength) {
 				//Chance to trigger turn: 0.05
-				placeCorner = (Math.random() > 0.0f && cornerLastPlaced == 0) ? true : false;
+				//Only trigger turns if speed is above threshhold
+				placeCorner = (Math.random() > 0.4f && cornerLastPlaced == 0 && (deltaTime2 > 12)) ? true : false;
 				cornerLastPlaced++;
 				if(cornerLastPlaced > groundMax) cornerLastPlaced = 0;
 				if(actGround[i].type == GroundActor.GROUNDS.cornerL || actGround[i].type == GroundActor.GROUNDS.cornerR) {
@@ -590,11 +651,28 @@ public class EasterRun implements ApplicationListener {
 					actGround[i].model = mdlGroundStraight;
 					actGround[i].rotation.set(0,0,0);
 					actGround[i].move(groundLength/2, 0, 0);
-					
 				}
+				//Trigger outcrop
+				double outcropOrBridge = Math.random();
+				placeOutcrop = (outcropOrBridge < 0.5 && outcropLastPlaced == 0 && !placeCorner && (deltaTime2 > 7)) ? true : false;
+				outcropLastPlaced++;
+				if(outcropLastPlaced > groundMax * 3) outcropLastPlaced = 0;
 				
 				actGround[i].move(-groundMax * groundLength, 0, 0);
-				if(placeCorner) {
+				
+				//Trigger bridge
+				placeBridge = (outcropOrBridge >= 0.5 && bridgeLastPlaced == 0 && !placeCorner && (deltaTime2 > 7)) ? true : false;
+				bridgeLastPlaced++;
+				if(bridgeLastPlaced > groundMax * 3) bridgeLastPlaced = 0;
+				
+				//Reset moved back grounds
+				if(actGround[i].type == GroundActor.GROUNDS.bridge || actGround[i].type == GroundActor.GROUNDS.outcrop){
+					actGround[i].type = GroundActor.GROUNDS.straight;
+					actGround[i].model = mdlGroundStraight;
+				}
+				
+				
+				if(placeCorner && (deltaTime2 > 12)) {
 					//50/50 chance for the turn to be left or right.  Not important
 					if(Math.random() < 0.5) {
 						actGround[i].model = mdlGroundCornerL;
@@ -605,21 +683,30 @@ public class EasterRun implements ApplicationListener {
 					}
 					actGround[i].move(-groundLength/2, 0, 0);
 					placeCorner = false;
-					groundCornerIndex = i;
-				} 
+				} else if(placeBridge && (deltaTime2 > 8)) {
+					actGround[i].model = mdlGroundBridge;
+					actGround[i].type = GroundActor.GROUNDS.bridge;
+					placeBridge = false;
+				} else if(placeOutcrop) {
+					actGround[i].model = mdlGroundOutcrop;
+					actGround[i].type = GroundActor.GROUNDS.outcrop;
+				}
 			}
 		}
 		
 		//Update player
 		if(gameState == States.play) {
 			actPlayer.update(tpf);
-			if(deltaTime2 < 6) {
+			if(deltaTime2 < 8) {
 				if(actPlayer.position.y > 0) {
 					actPlayer.setAnim(PlayerActor.anims.jump);
 				} else {
-					actPlayer.setAnim(PlayerActor.anims.walk);
+					if(actPlayer.currentAnim != PlayerActor.anims.walk) {
+						actPlayer.setAnim(PlayerActor.anims.walk);
+						actPlayer.currentFrame = 1;
+					}
 				}
-			} else if(deltaTime2 < 12) {
+			} else if(deltaTime2 < 13) {
 				if(actPlayer.position.y > 0) {
 					actPlayer.setAnim(PlayerActor.anims.fly);
 				} else {
@@ -656,6 +743,7 @@ public class EasterRun implements ApplicationListener {
 		if(eggTimer > eggRate && gameState == States.play && !cornerPlaced) {
 			eggTimer = 0;
 			//3 slots
+			eggsFromThisSpawn = 0;
 			for(int curSlot = 0; curSlot < 3; curSlot++) {
 				//Calculate egg type
 				double eggRandType = Math.random();
@@ -664,7 +752,11 @@ public class EasterRun implements ApplicationListener {
 				else if(eggRandType < 0.6) eggType = 1;
 				else if(eggRandType < 0.8) eggType = 2;
 				else if(eggRandType < 0.88) eggType = 3;
-				else if(eggRandType >= 0.88) eggType = 4;
+				else if(eggRandType >= 0.88 && eggsFromThisSpawn < 2 && (eggsFromLastSpawn + eggsFromThisSpawn) < constEggLimit) {
+					//Spawn hazard
+					eggType = 4;
+					eggsFromThisSpawn++;
+				}
 				
 				//80% chance to spawn egg
 				if(Math.random() > 0.2) {
@@ -674,6 +766,7 @@ public class EasterRun implements ApplicationListener {
 					eggs.add(newEgg);
 				}
 			}
+			eggsFromLastSpawn = eggsFromThisSpawn;
 		}
 		
 		if(gameState == States.score) {
@@ -770,10 +863,9 @@ public class EasterRun implements ApplicationListener {
 			break;
 			
 		case score:
-				//Wait for all eggs to disappear and for score text to come in fully before transitioning state
-				if(eggs.isEmpty() && scoreTextPosY >= screenHeight/2 && Gdx.input.isTouched()) {
-					initialize();
-					gameState = States.play;
+				//Wait for score to show fully
+				if(scoreTextPosY >= screenHeight/2 && Gdx.input.isTouched()) {
+					gameState = States.reset;
 				}
 			break;
 			

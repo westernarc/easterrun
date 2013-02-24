@@ -1,0 +1,12 @@
+package com.westernarc.easterrun.Actors;
+
+import com.badlogic.gdx.math.Vector3;
+
+public class GroundActor extends Actor {
+	public enum GROUNDS {straight, cornerR, cornerL}
+	public GROUNDS type;
+	public Vector3 rotation;
+	public GroundActor() {
+		rotation = new Vector3();
+	}
+}
