@@ -71,7 +71,7 @@ public class EasterRun implements ApplicationListener {
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
 	final float eggBaseRate = 0.7f;
-	final float eggMaxRate = 0.4f;
+	final float eggMaxRate = 0.2f;
 	float eggRate;
 	float eggTimer;
 	

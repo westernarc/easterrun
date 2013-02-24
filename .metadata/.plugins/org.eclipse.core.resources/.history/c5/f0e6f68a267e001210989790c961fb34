@@ -71,7 +71,7 @@ public class EasterRun implements ApplicationListener {
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
 	final float eggBaseRate = 0.7f;
-	final float eggMaxRate = 0.4f;
+	final float eggMaxRate = 0.2f;
 	float eggRate;
 	float eggTimer;
 	
@@ -129,7 +129,6 @@ public class EasterRun implements ApplicationListener {
 	final int constEggLimit = 3;
 	int eggsFromLastSpawn;
 	int eggsFromThisSpawn;
-	int eggsFromLastTwoSpawns;
 		//For alternate grounds
 	boolean placeCorner;
 	boolean cornerPlaced;
@@ -752,8 +751,8 @@ public class EasterRun implements ApplicationListener {
 				if(eggRandType < 0.3) eggType = 0;
 				else if(eggRandType < 0.6) eggType = 1;
 				else if(eggRandType < 0.8) eggType = 2;
-				else if(eggRandType < 0.85) eggType = 3;
-				else if(eggRandType >= 0.85 && eggsFromThisSpawn < 2 && (eggsFromLastSpawn + eggsFromThisSpawn) < constEggLimit && eggsFromLastTwoSpawns < constEggLimit) {
+				else if(eggRandType < 0.88) eggType = 3;
+				else if(eggRandType >= 0.88 && eggsFromThisSpawn < 2 && (eggsFromLastSpawn + eggsFromThisSpawn) < constEggLimit) {
 					//Spawn hazard
 					eggType = 4;
 					eggsFromThisSpawn++;
@@ -767,9 +766,7 @@ public class EasterRun implements ApplicationListener {
 					eggs.add(newEgg);
 				}
 			}
-			eggsFromLastTwoSpawns = eggsFromLastSpawn + eggsFromThisSpawn;
 			eggsFromLastSpawn = eggsFromThisSpawn;
-			
 		}
 		
 		if(gameState == States.score) {
