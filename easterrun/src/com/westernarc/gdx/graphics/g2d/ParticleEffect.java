@@ -40,14 +40,20 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
  *
  */
 public class ParticleEffect implements Disposable {
-	private final Array<ParticleEmitter> emitters;
+	private Array<ParticleEmitter> emitters;
 
 	public ParticleEffect () {
-		emitters = new Array(8);
+		emitters = new Array<ParticleEmitter>(8);
+	}
+	
+	public ParticleEffect clone() {
+		ParticleEffect newParticleEffect = new ParticleEffect();
+		newParticleEffect.emitters = this.emitters;
+		return newParticleEffect;
 	}
 
 	public ParticleEffect (ParticleEffect effect) {
-		emitters = new Array(true, effect.emitters.size);
+		emitters = new Array<ParticleEmitter>(true, effect.emitters.size);
 		for (int i = 0, n = effect.emitters.size; i < n; i++)
 			emitters.add(new ParticleEmitter(effect.emitters.get(i)));
 	}
