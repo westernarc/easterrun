@@ -67,7 +67,7 @@ public class EasterRun implements ApplicationListener {
 	Material matPlayerRed;
 	final float constPlayerX = -5;
 	
-	final int eggMax = 5;
+	final int eggMax = 6;
 	Actor[] actEggs;
 	ArrayList<Actor> eggs;
 	final float eggBaseRate = 0.7f;
@@ -126,6 +126,12 @@ public class EasterRun implements ApplicationListener {
 	final float constPowerupEffect = 1.1f;
 	boolean powerupActive;
 	float powerupTimer;
+	
+	final float constInvulnDuration = 4;
+	boolean invulnActive;
+	float invulnTimer;
+	float invulnOriginalSpeed;
+	
 	final int constEggLimit = 3;
 	int eggsFromLastSpawn;
 	int eggsFromThisSpawn;
@@ -319,7 +325,8 @@ public class EasterRun implements ApplicationListener {
 			if(i != eggMax) {
 				//For eggs[0] to eggs[eggMax-1] keep type Egg
 				actEggs[i - 1].model = loadModel("models/egg" + i);
-				if(i == eggMax - 1) actEggs[i - 1].actorType = Actor.Type.Powerup;
+				if(i == 4) actEggs[3].actorType = Actor.Type.Powerup;
+				else if(i == 5) actEggs[4].actorType = Actor.Type.Invuln;
 			} else {
 				//Set the type to bomb
 				actEggs[i - 1].model = loadModel("models/rock");
@@ -433,6 +440,10 @@ public class EasterRun implements ApplicationListener {
 					onPowerupHit();
 					currentEgg.collisionActive = false;
 					break;
+				case Invuln:
+					onEggHit(currentEgg);
+					onInvulnHit();
+					currentEgg.collisionActive = false;
 				default:
 					break;
 				}
@@ -608,9 +619,11 @@ public class EasterRun implements ApplicationListener {
 				if(actGround[i].position.x > -20) {
 					if(actPlayer.position.z > -1 && cornerPlaced && gameState == States.play) {
 						onBombHit();
-						actPlayer.rotation.set(0, 90, 0);
-						actPlayer.position.z = 5.5f;
-						actPlayer.position.x = -15;
+						if(!invulnActive) {
+							actPlayer.rotation.set(0, 90, 0);
+							actPlayer.position.z = 5.5f;
+							actPlayer.position.x = -15;
+						}
 					}
 					if(actGround[i].rotation.y < 90) {
 						actGround[i].rotation.set(0,actGround[i].rotation.y + groundRate/10f,0);
@@ -626,9 +639,11 @@ public class EasterRun implements ApplicationListener {
 				if(actGround[i].position.x > -20) {
 					if(actPlayer.position.z < 1 && cornerPlaced && gameState == States.play) {
 						onBombHit();
-						actPlayer.rotation.set(0, -90, 0);
-						actPlayer.position.z = -5.5f;
-						actPlayer.position.x = -15;
+						if(!invulnActive) {
+							actPlayer.rotation.set(0, -90, 0);
+							actPlayer.position.z = -5.5f;
+							actPlayer.position.x = -15;
+						}
 					}
 					if(actGround[i].rotation.y > -90) {
 						actGround[i].rotation.set(0,actGround[i].rotation.y - groundRate/10f,0);
@@ -732,11 +747,12 @@ public class EasterRun implements ApplicationListener {
 		//TO ALLOW THE GAME TO RUN OVER THE EGG LIST ONLY ONCE, THE INDIVIDUAL EGGS
 		//ARE UPDATED IN THE RENDER METHOD
 		//CREATE NEW EGGS HERE
-		if(powerupActive)
+		if(powerupActive) 
 			eggTimer += tpf * (groundRate / constGroundBaseRate);
 		else
 			eggTimer += tpf;
 		
+			
 		//Scale eggrate based on time passed
 		eggRate = eggBaseRate - (gameTimer / 800f) * eggBaseRate;
 		if(eggRate < eggMaxRate) eggRate = eggMaxRate;
@@ -751,11 +767,12 @@ public class EasterRun implements ApplicationListener {
 				int eggType = 0;
 				if(eggRandType < 0.3) eggType = 0;
 				else if(eggRandType < 0.6) eggType = 1;
-				else if(eggRandType < 0.8) eggType = 2;
-				else if(eggRandType < 0.85) eggType = 3;
+				else if(eggRandType < 0.79) eggType = 2;
+				else if(eggRandType < 0.84) eggType = 3;
+				else if(eggRandType < 0.85) eggType = 4;
 				else if(eggRandType >= 0.85 && eggsFromThisSpawn < 2 && (eggsFromLastSpawn + eggsFromThisSpawn) < constEggLimit && eggsFromLastTwoSpawns < constEggLimit) {
 					//Spawn hazard
-					eggType = 4;
+					eggType = 5;
 					eggsFromThisSpawn++;
 				}
 				
@@ -769,7 +786,6 @@ public class EasterRun implements ApplicationListener {
 			}
 			eggsFromLastTwoSpawns = eggsFromLastSpawn + eggsFromThisSpawn;
 			eggsFromLastSpawn = eggsFromThisSpawn;
-			
 		}
 		
 		if(gameState == States.score) {
@@ -788,6 +804,14 @@ public class EasterRun implements ApplicationListener {
 				powerupActive = false;
 				powerupTimer = 0;
 			}
+		} else if(invulnActive) {
+			invulnTimer += tpf;
+			
+			if(invulnTimer > constInvulnDuration) {
+				invulnActive = false;
+				invulnTimer = 0;
+				groundRate = invulnOriginalSpeed;
+			}
 		} else {
 			if(groundRate > constGroundBaseRate) {
 				groundRate -= tpf * 0.5;
@@ -799,7 +823,6 @@ public class EasterRun implements ApplicationListener {
 		
 		//Handle Input
 		handleTouch();
-
 	}
 	@Override
 	public void resize(int width, int height) {
@@ -906,9 +929,11 @@ public class EasterRun implements ApplicationListener {
 		sndEgg.play();
 	}
 	public void onBombHit() {
-		gameState = States.dead;
-		actPlayer.model.setMaterial(matPlayerRed);
-		sndDeath.play();
+		if(!invulnActive) {
+			gameState = States.dead;
+			actPlayer.model.setMaterial(matPlayerRed);
+			sndDeath.play();
+		}
 	}
 	
 	public void onPowerupHit() {
@@ -921,6 +946,14 @@ public class EasterRun implements ApplicationListener {
 		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
 		powerupActive = true;
 		powerupTimer = 0;
+	}
+	
+	public void onInvulnHit() {
+		if(!invulnActive) {
+			invulnActive = true;
+			invulnOriginalSpeed = groundRate;
+			groundRate = constGroundMaxRate;
+		}
 	}
 	
 	//Utility method to find number of digits in a number

@@ -21,4 +21,6 @@
 <fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun.States"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.GroundActor.GROUNDS"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.PlayerActor.anims"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun"/>
+<fullyQualifiedTypeName name="com.me.mygdxgame.MyGdxGame"/>
 </qualifiedTypeNameHistroy>

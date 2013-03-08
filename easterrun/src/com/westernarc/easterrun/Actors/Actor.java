@@ -14,7 +14,7 @@ public class Actor {
 	public Material material;
 	public Texture texture;
 	
-	public enum Type {Player, Egg, Powerup, Ground, Bomb};
+	public enum Type {Player, Egg, Powerup, Ground, Bomb, Invuln};
 	public Type actorType;
 	
 	//Whether or not the actor can be collided with
@@ -24,7 +24,6 @@ public class Actor {
 		position = new Vector3(0,0,0);
 		velocity = new Vector3(0,0,0);
 		acceleration = new Vector3(0,0,0);
-		
 		collisionActive = true;
 	}
 	public Actor(Type t) {
