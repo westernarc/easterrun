@@ -127,7 +127,7 @@ public class EasterRun implements ApplicationListener {
 	boolean powerupActive;
 	float powerupTimer;
 	
-	final float constInvulnDuration = 4;
+	final float constInvulnDuration = 5;
 	final float constInvulnFadeTime = 3;
 	boolean invulnActive;
 	float invulnTimer;
@@ -150,6 +150,7 @@ public class EasterRun implements ApplicationListener {
 	final static int constMaxEggEffects = 8;
 	ParticleEffect[] prtEggEffects;
 	ParticleEffect[] prtSpeedEffect;
+	ParticleEffect prtInvulnEffect;
 		
 	//Audio
 	Music musBackground;
@@ -221,6 +222,10 @@ public class EasterRun implements ApplicationListener {
 		prtSpeedEffect[0].setPosition(0,screenHeight/3);
 		prtSpeedEffect[1].setPosition(0,screenHeight/3);
 		prtSpeedEffect[2].setPosition(0,screenHeight*2f/5f);
+		
+		prtInvulnEffect = new ParticleEffect();
+		prtInvulnEffect.load(Gdx.files.internal("data/invuln.p"), Gdx.files.internal("textures/"));
+		prtInvulnEffect.start();
 		
 		placeCorner = false;
 		cornerPlaced = false;
@@ -476,7 +481,23 @@ public class EasterRun implements ApplicationListener {
 				prtEggEffects[i].draw(gameBatch);
 			}
 		}
-
+		//Invuln particles
+		if(invulnActive && invulnTimer < constInvulnFadeTime) {
+			float prtX = 0;
+			float prtY = 0;
+			if(actPlayer.position.z > 5) {
+				prtX = -screenWidth  / 4f;
+			} else if(actPlayer.position.z < -5) {
+				prtX = screenWidth / 4f;
+			}
+			if(prtInvulnEffect.isComplete())
+				prtInvulnEffect.start();
+			if(gameState != States.dead)
+				prtInvulnEffect.update(tpf);
+			prtInvulnEffect.setPosition((screenWidth/2) + prtX, screenHeight/4 + prtY);
+			prtInvulnEffect.draw(gameBatch);
+		}
+		
 		//Speed effect particles
 		if(groundRate > 80 && gameState == States.play) {
 			float prtX = 0;
@@ -486,9 +507,7 @@ public class EasterRun implements ApplicationListener {
 			} else if(actPlayer.position.z < -5) {
 				prtX = screenWidth / 4f;
 			}
-			if(actPlayer.position.y > 1) {
-				prtY = screenHeight/10f;
-			}
+
 			prtSpeedEffect[0].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
 			if(gameState != States.dead) { 
 				prtSpeedEffect[0].update(tpf);
@@ -810,27 +829,30 @@ public class EasterRun implements ApplicationListener {
 			}
 		}
 		//Update powerup effects
-		if(powerupActive) {
-			powerupTimer += tpf;
-			
-			//Reset when powerup timer hits powerup duration
-			if(powerupTimer > constPowerupDuration) {
-				powerupActive = false;
-				powerupTimer = 0;
-			}
-		} else if(invulnActive) {
-			invulnTimer += tpf;
-			//Start fading out the invulnerability
-			if(invulnTimer > constInvulnFadeTime) {
-				//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
-				//the speed falls to the original speed
+		if(powerupActive || invulnActive) {
+			if(powerupActive) {
+				powerupTimer += tpf;
 				
-				groundRate -= (groundRate - invulnOriginalSpeed) / (constInvulnDuration - constInvulnFadeTime);
-			}
-			if(invulnTimer > constInvulnDuration) {
-				invulnActive = false;
-				invulnTimer = 0;
-				groundRate = invulnOriginalSpeed;
+				//Reset when powerup timer hits powerup duration
+				if(powerupTimer > constPowerupDuration) {
+					powerupActive = false;
+					powerupTimer = 0;
+				}
+			} 
+			if(invulnActive) {
+				invulnTimer += tpf;
+				//Start fading out the invulnerability
+				if(invulnTimer > constInvulnFadeTime) {
+					//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
+					//the speed falls to the original speed
+					
+					groundRate -= (groundRate - invulnOriginalSpeed) / (constInvulnDuration - constInvulnFadeTime);
+				}
+				if(invulnTimer > constInvulnDuration) {
+					invulnActive = false;
+					invulnTimer = 0;
+					groundRate = invulnOriginalSpeed;
+				}
 			}
 		} else {
 			if(groundRate > constGroundBaseRate) {

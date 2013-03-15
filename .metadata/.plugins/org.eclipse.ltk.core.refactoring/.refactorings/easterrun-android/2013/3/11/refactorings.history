@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;eggpop.p&apos; to &apos;eggpop.p&apos;&#x0D;&#x0A;- Original project: &apos;easterrun-android&apos;&#x0D;&#x0A;- Destination element: &apos;eggpop.p&apos;&#x0D;&#x0A;- Original element: &apos;eggpop.p&apos;" description="Copy file" element1="assets/data/eggpop.p" files="1" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1363359100101" target="/easterrun-android/assets/data/eggpop.p" units="0" version="1.0"/>
+</session>
