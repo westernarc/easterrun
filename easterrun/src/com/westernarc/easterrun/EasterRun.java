@@ -128,6 +128,7 @@ public class EasterRun implements ApplicationListener {
 	float powerupTimer;
 	
 	final float constInvulnDuration = 4;
+	final float constInvulnFadeTime = 3;
 	boolean invulnActive;
 	float invulnTimer;
 	float invulnOriginalSpeed;
@@ -154,6 +155,13 @@ public class EasterRun implements ApplicationListener {
 	Music musBackground;
 	Sound sndDeath;
 	Sound sndEgg;
+	
+	//Unlockables
+	enum UNLOCKSTATE {none, boots, jacket, basket, pendant}
+	//Boots give faster lane switching
+	//Jacket gives greater max speed
+	//Basket gives 2x score on certain egg colors
+	//pendant gives 1 second activatable charge, 0.5 second duration, increases rock frequency
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -183,6 +191,8 @@ public class EasterRun implements ApplicationListener {
 		powerupActive = false;
 		powerupTimer = 0;
 		
+		invulnActive = false;
+		invulnTimer = 0;
 		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
 		
 		deltaGameTimer = 0;
@@ -459,14 +469,16 @@ public class EasterRun implements ApplicationListener {
 		gameBatch.begin();
 		for(int i = 0; i < constMaxEggEffects; i++) {
 			if(!prtEggEffects[i].isComplete()) {
-				prtEggEffects[i].update(tpf);
-				prtEggEffects[i].setPosition(prtEggEffects[i].getX(0), prtEggEffects[i].getY(0) - groundRate /10f);
+				if(gameState != States.dead) {
+					prtEggEffects[i].update(tpf);
+					prtEggEffects[i].setPosition(prtEggEffects[i].getX(0), prtEggEffects[i].getY(0) - groundRate /10f);
+				}
 				prtEggEffects[i].draw(gameBatch);
 			}
 		}
 
 		//Speed effect particles
-		if(deltaTime2 > 8 && gameState == States.play) {
+		if(groundRate > 80 && gameState == States.play) {
 			float prtX = 0;
 			float prtY = 0;
 			if(actPlayer.position.z > 5) {
@@ -478,15 +490,17 @@ public class EasterRun implements ApplicationListener {
 				prtY = screenHeight/10f;
 			}
 			prtSpeedEffect[0].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
-			prtSpeedEffect[0].update(tpf);
+			if(gameState != States.dead) { 
+				prtSpeedEffect[0].update(tpf);
+			}
 			prtSpeedEffect[0].draw(gameBatch);
 			
-			if(deltaTime2 > 10) {
+			if(groundRate > 100) {
 				prtSpeedEffect[1].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
 				prtSpeedEffect[1].update(tpf);
 				prtSpeedEffect[1].draw(gameBatch);
 				
-				if(deltaTime2 > 12) {
+				if(groundRate > 120) {
 					prtSpeedEffect[2].setPosition((screenWidth/2) + prtX, screenHeight*2/5f + prtY);
 					prtSpeedEffect[2].update(tpf);
 					prtSpeedEffect[2].draw(gameBatch);
@@ -592,9 +606,9 @@ public class EasterRun implements ApplicationListener {
 				}
 				gameTimer += tpf * groundRate / 10;
 				deltaGameTimer += tpf;
-				if(deltaGameTimer > 1) {
+				if(deltaGameTimer > 0.5) {
 					deltaGameTimer = 0;
-					deltaTime2 = gameTimer - deltaTime1;
+					deltaTime2 = (gameTimer - deltaTime1) * 2;
 				}
 			}
 			
@@ -659,7 +673,7 @@ public class EasterRun implements ApplicationListener {
 			if(actGround[i].position.x > groundLength) {
 				//Chance to trigger turn: 0.05
 				//Only trigger turns if speed is above threshhold
-				placeCorner = (Math.random() > 0.4f && cornerLastPlaced == 0 && (deltaTime2 > 12)) ? true : false;
+				placeCorner = (Math.random() > 0.4f && cornerLastPlaced == 0 && (groundRate > 120)) ? true : false;
 				cornerLastPlaced++;
 				if(cornerLastPlaced > groundMax) cornerLastPlaced = 0;
 				if(actGround[i].type == GroundActor.GROUNDS.cornerL || actGround[i].type == GroundActor.GROUNDS.cornerR) {
@@ -670,14 +684,14 @@ public class EasterRun implements ApplicationListener {
 				}
 				//Trigger outcrop
 				double outcropOrBridge = Math.random();
-				placeOutcrop = (outcropOrBridge < 0.3 && outcropLastPlaced == 0 && !placeCorner && (deltaTime2 > 7)) ? true : false;
+				placeOutcrop = (outcropOrBridge < 0.3 && outcropLastPlaced == 0 && !placeCorner && (groundRate > 70)) ? true : false;
 				outcropLastPlaced++;
 				if(outcropLastPlaced > groundMax * 3) outcropLastPlaced = 0;
 				
 				actGround[i].move(-groundMax * groundLength, 0, 0);
 				
 				//Trigger bridge
-				placeBridge = (outcropOrBridge >= 0.3 && bridgeLastPlaced == 0 && !placeCorner && (deltaTime2 > 7)) ? true : false;
+				placeBridge = (outcropOrBridge >= 0.3 && bridgeLastPlaced == 0 && !placeCorner && (groundRate > 70)) ? true : false;
 				bridgeLastPlaced++;
 				if(bridgeLastPlaced > groundMax * 3) bridgeLastPlaced = 0;
 				
@@ -688,7 +702,7 @@ public class EasterRun implements ApplicationListener {
 				}
 				
 				
-				if(placeCorner && (deltaTime2 > 12)) {
+				if(placeCorner && (groundRate > 120)) {
 					//50/50 chance for the turn to be left or right.  Not important
 					if(Math.random() < 0.5) {
 						actGround[i].model = mdlGroundCornerL;
@@ -699,7 +713,7 @@ public class EasterRun implements ApplicationListener {
 					}
 					actGround[i].move(-groundLength/2, 0, 0);
 					placeCorner = false;
-				} else if(placeBridge && (deltaTime2 > 8)) {
+				} else if(placeBridge && (groundRate > 80)) {
 					actGround[i].model = mdlGroundBridge;
 					actGround[i].type = GroundActor.GROUNDS.bridge;
 					placeBridge = false;
@@ -713,7 +727,7 @@ public class EasterRun implements ApplicationListener {
 		//Update player
 		if(gameState == States.play) {
 			actPlayer.update(tpf);
-			if(deltaTime2 < 8) {
+			if(groundRate < 80) {
 				if(actPlayer.position.y > 0) {
 					actPlayer.setAnim(PlayerActor.anims.jump);
 				} else {
@@ -722,7 +736,7 @@ public class EasterRun implements ApplicationListener {
 						actPlayer.currentFrame = 1;
 					}
 				}
-			} else if(deltaTime2 < 13) {
+			} else if(groundRate < 130) {
 				if(actPlayer.position.y > 0) {
 					actPlayer.setAnim(PlayerActor.anims.fly);
 				} else {
@@ -806,7 +820,13 @@ public class EasterRun implements ApplicationListener {
 			}
 		} else if(invulnActive) {
 			invulnTimer += tpf;
-			
+			//Start fading out the invulnerability
+			if(invulnTimer > constInvulnFadeTime) {
+				//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
+				//the speed falls to the original speed
+				
+				groundRate -= (groundRate - invulnOriginalSpeed) / (constInvulnDuration - constInvulnFadeTime);
+			}
 			if(invulnTimer > constInvulnDuration) {
 				invulnActive = false;
 				invulnTimer = 0;
@@ -953,6 +973,7 @@ public class EasterRun implements ApplicationListener {
 			invulnActive = true;
 			invulnOriginalSpeed = groundRate;
 			groundRate = constGroundMaxRate;
+			resetAlpha = 0.9f;
 		}
 	}
 	

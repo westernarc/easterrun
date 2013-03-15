@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ASCII"?>
 <application:Application xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:advanced="http://www.eclipse.org/ui/2010/UIModel/application/ui/advanced" xmlns:application="http://www.eclipse.org/ui/2010/UIModel/application" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmlns:menu="http://www.eclipse.org/ui/2010/UIModel/application/ui/menu" xmi:id="_dmalIXr5EeK1RcL9WRPLbw" elementId="org.eclipse.e4.legacy.ide.application" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_dmalInr5EeK1RcL9WRPLbw" bindingContexts="_dmbMNHr5EeK1RcL9WRPLbw">
   <tags>activeSchemeId:org.eclipse.ui.defaultAcceleratorConfiguration</tags>
-  <children xsi:type="basic:TrimmedWindow" xmi:id="_dmalInr5EeK1RcL9WRPLbw" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_dx6Dcnr5EeK1RcL9WRPLbw" label="%trimmedwindow.label.eclipseSDK" x="0" y="0" width="1037" height="990">
+  <children xsi:type="basic:TrimmedWindow" xmi:id="_dmalInr5EeK1RcL9WRPLbw" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.platform" selectedElement="_dx6Dcnr5EeK1RcL9WRPLbw" label="%trimmedwindow.label.eclipseSDK" x="928" y="0" width="752" height="1050">
     <tags>topLevel</tags>
     <children xsi:type="basic:PartSashContainer" xmi:id="_dx6Dcnr5EeK1RcL9WRPLbw" selectedElement="_dx6qgHr5EeK1RcL9WRPLbw" horizontal="true">
       <children xsi:type="advanced:PerspectiveStack" xmi:id="_dx6qgHr5EeK1RcL9WRPLbw" elementId="PerspectiveStack" containerData="7500" selectedElement="_d1MoAXr5EeK1RcL9WRPLbw">
@@ -82,7 +82,7 @@
           <tags>persp.actionSet:org.jboss.tools.central</tags>
           <tags>persp.actionSet:org.jboss.tools.common.model.ui.actionSet</tags>
           <tags>persp.actionSet:org.hibernate.eclipse.launch.actionset</tags>
-          <children xsi:type="basic:PartSashContainer" xmi:id="_d1MoAnr5EeK1RcL9WRPLbw" selectedElement="_d1NPEnr5EeK1RcL9WRPLbw" horizontal="true">
+          <children xsi:type="basic:PartSashContainer" xmi:id="_d1MoAnr5EeK1RcL9WRPLbw" selectedElement="_d1MoA3r5EeK1RcL9WRPLbw" horizontal="true">
             <children xsi:type="basic:PartStack" xmi:id="_d1MoA3r5EeK1RcL9WRPLbw" elementId="left" containerData="3402" selectedElement="_d1MoBHr5EeK1RcL9WRPLbw">
               <tags>newtablook</tags>
               <tags>org.eclipse.e4.primaryNavigationStack</tags>
@@ -152,7 +152,7 @@
         <tags>org.eclipse.e4.primaryDataStack</tags>
         <tags>EditorStack</tags>
         <children xsi:type="basic:Part" xmi:id="_lNZkoHr5EeKBLYYeFMbVFw" elementId="org.eclipse.e4.ui.compatibility.editor" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor" label="EasterRun.java" iconURI="platform:/plugin/org.eclipse.jdt.ui//icons/full/obj16/jcu_obj.gif" tooltip="easterrun/src/com/westernarc/easterrun/EasterRun.java" closeable="true">
-          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/easterrun/src/com/westernarc/easterrun/EasterRun.java&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;1639&quot; selectionTopPixel=&quot;0&quot;/>&#xD;&#xA;&lt;/editor>"/>
+          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/easterrun/src/com/westernarc/easterrun/EasterRun.java&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;1937&quot; selectionTopPixel=&quot;0&quot;/>&#xD;&#xA;&lt;/editor>"/>
           <tags>Editor</tags>
           <tags>removeOnHide</tags>
         </children>
