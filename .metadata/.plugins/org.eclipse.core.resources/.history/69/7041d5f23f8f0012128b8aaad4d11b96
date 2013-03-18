@@ -1,0 +1,30 @@
+import java.awt.Graphics;
+
+import javax.swing.JPanel;
+
+
+public class MineButton extends JPanel {
+	boolean clicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	int minesInVicinity;
+	
+	public MineButton() {
+		super();
+	}
+	
+	public MineButton(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setMinesInVicinity(int mines) {
+		minesInVicinity = mines;
+	}
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		g.drawString(Integer.toString(minesInVicinity), 0, 0);
+	}
+}

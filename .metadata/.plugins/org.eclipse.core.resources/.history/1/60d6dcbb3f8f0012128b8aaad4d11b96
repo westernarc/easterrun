@@ -1,0 +1,24 @@
+import javax.swing.JPanel;
+
+
+public class MineButton extends JPanel {
+	boolean clicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	int minesInVicinity;
+	public MineButton() {
+		super();
+	}
+	
+	public MineButton(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+	
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		g.drawString();
+	}
+}

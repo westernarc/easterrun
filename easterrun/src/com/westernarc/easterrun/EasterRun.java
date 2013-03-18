@@ -65,6 +65,8 @@ public class EasterRun implements ApplicationListener {
 	Material matPlayer;
 	Texture txrPlayerRed;
 	Material matPlayerRed;
+	Texture txrPlayerWhite;
+	Material matPlayerWhite;
 	final float constPlayerX = -5;
 	
 	final int eggMax = 6;
@@ -127,12 +129,11 @@ public class EasterRun implements ApplicationListener {
 	boolean powerupActive;
 	float powerupTimer;
 	
-	final float constInvulnDuration = 5;
-	final float constInvulnFadeTime = 3;
+	final float constInvulnDuration = 4;
+	final float constInvulnFadeTime = 3.7f;
 	boolean invulnActive;
 	float invulnTimer;
-	float invulnOriginalSpeed;
-	
+
 	final int constEggLimit = 3;
 	int eggsFromLastSpawn;
 	int eggsFromThisSpawn;
@@ -184,7 +185,7 @@ public class EasterRun implements ApplicationListener {
 
 		deadTimer = 0;
 		
-		actPlayer.model.setMaterial(matPlayer);
+		actPlayer.setMaterial(matPlayer);
 		actPlayer.rotation.set(0,0,0);
 		scoreTextScale = 1;
 		scoreStored = false;
@@ -302,15 +303,17 @@ public class EasterRun implements ApplicationListener {
 		//Load player
 		actPlayer = new PlayerActor();
 		actPlayer.model = loadModel("models/pascha/player1");
-		//Two textures, one normal one for player getting hit
+		//Three textures, one normal one for player getting hit one for invuln
 		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
 		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+		txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
 		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		//Set texture to the normal one
 		actPlayer.texture = txrPlayer;
 		actPlayer.material = matPlayer;
-		actPlayer.model.setMaterial(matPlayer);
+		//actPlayer.setMaterial(matPlayer);
 		
 		//Load player animation frames
 		for(int curFrame = 1; curFrame < 20; curFrame++) {
@@ -494,7 +497,7 @@ public class EasterRun implements ApplicationListener {
 				prtInvulnEffect.start();
 			if(gameState != States.dead)
 				prtInvulnEffect.update(tpf);
-			prtInvulnEffect.setPosition((screenWidth/2) + prtX, screenHeight/4 + prtY);
+			prtInvulnEffect.setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
 			prtInvulnEffect.draw(gameBatch);
 		}
 		
@@ -846,12 +849,15 @@ public class EasterRun implements ApplicationListener {
 					//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
 					//the speed falls to the original speed
 					
-					groundRate -= (groundRate - invulnOriginalSpeed) / (constInvulnDuration - constInvulnFadeTime);
+					groundRate = constGroundMaxRate;
+					resetAlpha = 0.9f;
 				}
 				if(invulnTimer > constInvulnDuration) {
+					
 					invulnActive = false;
 					invulnTimer = 0;
-					groundRate = invulnOriginalSpeed;
+					groundRate = constGroundMaxRate;
+					actPlayer.setMaterial(matPlayer);
 				}
 			}
 		} else {
@@ -886,6 +892,9 @@ public class EasterRun implements ApplicationListener {
 	public void handleTouch() {
 		if(Gdx.input.isKeyPressed(Keys.D)){
 			placeCorner = true;
+		}
+		if(Gdx.input.isKeyPressed(Keys.S)) {
+			onInvulnHit();
 		}
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
@@ -973,29 +982,32 @@ public class EasterRun implements ApplicationListener {
 	public void onBombHit() {
 		if(!invulnActive) {
 			gameState = States.dead;
-			actPlayer.model.setMaterial(matPlayerRed);
+			actPlayer.setMaterial(matPlayerRed);
 			sndDeath.play();
 		}
 	}
 	
 	public void onPowerupHit() {
 		//If powerup is not already active, increase animation frame rate and ground rate
-		
-		if(groundRate >= constGroundMaxRate)
-			groundRate = constGroundMaxRate;
-		else 
-			groundRate = groundRate * constPowerupEffect;
-		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
-		powerupActive = true;
-		powerupTimer = 0;
+		if(!invulnActive) {
+			
+			if(groundRate >= constGroundMaxRate)
+				groundRate = constGroundMaxRate;
+			else 
+				groundRate = groundRate * constPowerupEffect;
+			
+			actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
+			powerupActive = true;
+			powerupTimer = 0;
+		}
 	}
 	
 	public void onInvulnHit() {
 		if(!invulnActive) {
 			invulnActive = true;
-			invulnOriginalSpeed = groundRate;
-			groundRate = constGroundMaxRate;
+			groundRate = constGroundMaxRate * 2;
 			resetAlpha = 0.9f;
+			actPlayer.setMaterial(matPlayerWhite);
 		}
 	}
 	

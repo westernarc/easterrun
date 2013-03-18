@@ -1,0 +1,23 @@
+import javax.swing.JFrame;
+
+
+public class Minesweeper extends JFrame {
+	boolean[][] minefield;
+	
+	public static void main(String[] args) {
+		Minesweeper ms = new Minesweeper();
+	}
+	public Minesweeper() {
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setSize(500,500);
+		setVisible(true);
+	}
+	
+	private void createMinefield(int size) {
+		minefield = new boolean[size][size];
+	}
+	
+	public void repaint() {
+		
+	}
+}

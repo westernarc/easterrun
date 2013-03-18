@@ -1,0 +1,15 @@
+import javax.swing.JPanel;
+
+
+public class MineButton extends JPanel {
+	boolean clicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	public MineButton() {
+		super();
+	}
+	
+	public MineButton()
+}

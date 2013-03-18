@@ -1,0 +1,108 @@
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+
+public class Minesweeper extends JFrame implements ActionListener {
+	MineButton[][] minefieldTiles;
+	
+	JPanel minefieldPanel;
+	JPanel topGuiPanel;
+	
+	JButton btnReset;
+	
+	public static void main(String[] args) {
+		Minesweeper ms = new Minesweeper();
+	}
+	public Minesweeper() {
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setSize(500,500);
+		
+		minefieldPanel = new JPanel();
+		topGuiPanel = new JPanel();
+		
+		setLayout(new BorderLayout());
+		add(minefieldPanel, BorderLayout.CENTER);
+		add(topGuiPanel, BorderLayout.NORTH);
+		btnReset = new JButton("Reset");
+		topGuiPanel.add(btnReset);
+		createMinefield(10);
+		
+		setVisible(true);
+	}
+	
+	private void createMinefield(int size) {
+		minefieldTiles = new MineButton[size][size];
+		
+		//Set up panels
+		minefieldPanel.setLayout(new GridLayout(size, size));
+		
+		//Initialize minefield
+		for(int y = 0; y < size; y++) {
+			for(int x = 0; x < size; x++) {
+				minefieldTiles[x][y] = new MineButton(x, y);
+				minefieldTiles[x][y].setHoldsMine(false);
+
+				minefieldTiles[x][y].addActionListener(this);
+				
+				minefieldTiles[x][y].setBorder(BorderFactory.createLineBorder(Color.WHITE));
+				minefieldPanel.add(minefieldTiles[x][y]);
+			}
+		}
+		minefieldPanel.setVisible(true);
+		
+		//Place 10 random bombs
+		for(int i = 0; i < 10; i++) {
+			int randomX = (int)Math.round(Math.random() * (size - 1));
+			int randomY = (int)Math.round(Math.random() * (size - 1));
+			
+			//If the spot on the minefield is not already occupied occupy it
+			if(!minefieldTiles[randomX][randomY].holdsMine()) {
+				minefieldTiles[randomX][randomY].setHoldsMine(true);
+			} else {
+				//If it's already occupied redo this bomb placement
+				i--;
+			}
+		}
+		
+		//Calculate bombs in vicinity
+		for(int x = 0; x < size; x++) {
+			for(int y = 0; y < size; y++) {
+				int adjacentBoms = 0;
+				if(x > 0 && y < size - 1 && minefieldTiles[x - 1][y + 1].holdsMine()) adjacentBoms++;
+				if(y < size - 1 && minefieldTiles[x][y + 1].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && y < size - 1 && minefieldTiles[x + 1][y + 1].holdsMine()) adjacentBoms++;
+				if(x > 1 && minefieldTiles[x - 1][y].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && minefieldTiles[x + 1][y].holdsMine()) adjacentBoms++;
+				if(x > 1 && y > 1 && minefieldTiles[x - 1][y - 1].holdsMine()) adjacentBoms++;
+				if(y > 1 && minefieldTiles[x][y - 1].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && y > 1 && minefieldTiles[x + 1][y - 1].holdsMine()) adjacentBoms++;
+				minefieldTiles[x][y].setMinesInVicinity(adjacentBoms);
+			}
+		}
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getSource() instanceof MineButton) {
+			MineButton source = (MineButton)e.getSource();
+			source.click();
+	
+			if(source.getMinesInVicinity() == 0) {
+				if(source.y < minefieldTiles.length - 1 && !minefieldTiles[source.x][source.y + 1].isClicked) minefieldTiles[source.x][source.y + 1].doClick(1);
+				if(source.y > 1 && !minefieldTiles[source.x][source.y - 1].isClicked) minefieldTiles[source.x][source.y - 1].doClick(1);
+				if(source.x < minefieldTiles.length - 1 && !minefieldTiles[source.x + 1][source.y].isClicked) minefieldTiles[source.x + 1][source.y].doClick(1);
+				if(source.x > 1 && !minefieldTiles[source.x - 1][source.y].isClicked) minefieldTiles[source.x - 1][source.y].doClick(1);
+			}
+		}
+	}
+}

@@ -1,0 +1,39 @@
+import java.awt.Color;
+import java.awt.Graphics;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+
+public class MineButton extends JPanel {
+	boolean clicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	int minesInVicinity;
+	
+	JLabel label;
+	
+	public MineButton() {
+		super();
+		minesInVicinity = 0;
+		label = new JLabel();
+		add(label);
+	}
+	
+	public MineButton(int x, int y) {
+		this();
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setMinesInVicinity(int mines) {
+		minesInVicinity = mines;
+	}
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		g.setColor(Color.BLACK);
+		g.drawString(Integer.toString(minesInVicinity), 0, 0);
+	}
+}

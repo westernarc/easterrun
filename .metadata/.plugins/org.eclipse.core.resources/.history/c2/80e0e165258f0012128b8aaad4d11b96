@@ -1,0 +1,14 @@
+import javax.swing.JFrame;
+
+
+public class Minesweeper extends JFrame {
+	public static void main(String[] args) {
+		Minesweeper ms = new Minesweeper();
+	}
+	public Minesweeper() {
+		setVisible(true);
+	}
+	public void repaint() {
+		
+	}
+}

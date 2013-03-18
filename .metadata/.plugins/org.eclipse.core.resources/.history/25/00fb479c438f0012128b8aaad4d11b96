@@ -1,0 +1,84 @@
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+
+public class Minesweeper extends JFrame {
+	MineButton[][] minefieldPanels;
+	
+	public static void main(String[] args) {
+		Minesweeper ms = new Minesweeper();
+	}
+	public Minesweeper() {
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setSize(500,500);
+		
+		createMinefield(10);
+		
+		setVisible(true);
+	}
+	
+	private void createMinefield(int size) {
+		minefieldPanels = new MineButton[size][size];
+		
+		//Set up panels
+		setLayout(new GridLayout(size, size));
+		
+		//Initialize minefield
+		for(int y = 0; y < size; y++) {
+			for(int x = 0; x < size; x++) {
+				minefieldPanels[x][y] = new MineButton(x, y);
+				minefieldPanels[x][y].setHoldsMine(false);
+				
+				minefieldPanels[x][y].addMouseListener(new MouseAdapter() {
+					public void mouseClicked(MouseEvent me) {
+						MineButton source = (MineButton)me.getSource();
+						if(source.holdsMine) System.out.println("You died");
+						//source.click();
+						//source.setMinesInVicinity(3);
+					}
+				});
+
+				minefieldPanels[x][y].setBorder(BorderFactory.createLineBorder(Color.WHITE));
+				getContentPane().add(minefieldPanels[x][y]);
+			}
+		}
+		
+		
+		//Place 10 random bombs
+		for(int i = 0; i < 10; i++) {
+			int randomX = (int)Math.round(Math.random() * (size - 1));
+			int randomY = (int)Math.round(Math.random() * (size - 1));
+			
+			//If the spot on the minefield is not already occupied occupy it
+			if(!minefieldPanels[randomX][randomY].holdsMine()) {
+				minefieldPanels[randomX][randomY].setHoldsMine(true);
+				minefieldPanels[randomX][randomY].setBackground(Color.RED);
+			} else {
+				//If it's already occupied redo this bomb placement
+				i--;
+			}
+		}
+		
+		//Calculate bombs in vicinity
+		for(int x = 0; x < size; x++) {
+			for(int y = 0; y < size; y++) {
+				int adjacentBoms = 0;
+				if(x > 0 && y < size - 1 && minefieldPanels[x - 1][y + 1].holdsMine()) adjacentBoms++;
+				if(y < size - 1 && minefieldPanels[x][y + 1].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && y < size - 1 && minefieldPanels[x + 1][y + 1].holdsMine()) adjacentBoms++;
+				if(x > 1 && minefieldPanels[x - 1][y].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && minefieldPanels[x + 1][y].holdsMine()) adjacentBoms++;
+				if(x > 1 && y > 1 && minefieldPanels[x - 1][y - 1].holdsMine()) adjacentBoms++;
+				if(y > 1 && minefieldPanels[x][y - 1].holdsMine()) adjacentBoms++;
+				if(x < size - 1 && y > 1 && minefieldPanels[x + 1][y - 1].holdsMine()) adjacentBoms++;
+				minefieldPanels[x][y].setMinesInVicinity(adjacentBoms);
+			}
+		}
+	}
+}

@@ -1,5 +1,6 @@
 package com.westernarc.easterrun.Actors;
 
+import com.badlogic.gdx.graphics.g3d.materials.Material;
 import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
 import com.badlogic.gdx.math.Vector3;
 
@@ -71,5 +72,20 @@ public class PlayerActor extends Actor {
 			currentFrame = 1;
 		}
 		currentAnim = anim;
+	}
+	
+	public void setMaterial(Material newMat) {
+		for(int curFrame = 1; curFrame < 20; curFrame++) {
+			walkFrames[curFrame].setMaterial(newMat);
+		}
+		for(int curFrame = 1; curFrame < 10; curFrame++) {
+			runFrames[curFrame].setMaterial(newMat);
+		}
+		for(int curFrame = 1; curFrame < 5; curFrame++) {
+			flyFrames[curFrame].setMaterial(newMat);
+		}
+		for(int curFrame = 1; curFrame < 7; curFrame++) {
+			jumpFrames[curFrame].setMaterial(newMat);
+		}
 	}
 }

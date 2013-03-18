@@ -1,0 +1,60 @@
+import java.awt.Color;
+import java.awt.Graphics;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+
+public class MineButton extends JButton {
+	boolean isClicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	int minesInVicinity;
+	
+	JLabel label;
+	public JLabel getLabel() {
+		return label;
+	}
+	public boolean holdsMine() {
+		return holdsMine;
+	}
+	public void setHoldsMine(boolean hm) {
+		holdsMine = hm;
+	}
+	public MineButton() {
+		super();
+		minesInVicinity = 0;
+		label = new JLabel();
+		label.setText(Integer.toString(minesInVicinity));
+		add(label);
+		setBackground(Color.GRAY);
+		unclick();
+	}
+	
+	public MineButton(int x, int y) {
+		this();
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setMinesInVicinity(int mines) {
+		minesInVicinity = mines;
+		label.setText(Integer.toString(minesInVicinity));
+	}
+	public int getMinesInVicinity() {
+		return minesInVicinity;
+	}
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+	}
+	public void click() {
+		isClicked = true;
+		label.setVisible(true);
+	}
+	public void unclick() {
+		isClicked = false;
+		label.setVisible(false);
+	}
+}

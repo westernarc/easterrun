@@ -1,0 +1,87 @@
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+
+public class MineButton extends JButton implements MouseListener {
+	boolean isClicked;
+	boolean holdsMine;
+	int x;
+	int y;
+	
+	int minesInVicinity;
+		
+	public boolean holdsMine() {
+		return holdsMine;
+	}
+	public void setHoldsMine(boolean hm) {
+		holdsMine = hm;
+	}
+	public MineButton() {
+		super();
+		minesInVicinity = 0;
+		setLabel("");
+		setBackground(Color.GRAY);
+		unclick();
+	}
+	
+	public MineButton(int x, int y) {
+		this();
+		this.x = x;
+		this.y = y;
+	}
+	
+	public void setMinesInVicinity(int mines) {
+		minesInVicinity = mines;
+	}
+	public int getMinesInVicinity() {
+		return minesInVicinity;
+	}
+	protected void paintComponent(Graphics g) {
+		super.paintComponent(g);
+	}
+	public void click() {
+		isClicked = true;
+		if(holdsMine) {
+			System.out.println("You died");
+			setBackground(Color.RED);
+		} else {
+			setBackground(Color.LIGHT_GRAY);
+		}
+		if(minesInVicinity != 0)setLabel(Integer.toString(minesInVicinity));
+	}
+	public void unclick() {
+		isClicked = false;
+		setLabel("");
+	}
+	@Override
+	public void mouseClicked(MouseEvent arg0) {
+		click();
+		
+	}
+	@Override
+	public void mouseEntered(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void mouseExited(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void mousePressed(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void mouseReleased(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+}
