@@ -264,9 +264,7 @@ public class EasterRun implements ApplicationListener {
 		//If the unlockstate is 0, set it back to 0;
 		//If it's the first run, then it will return default 0 and put a new integer in
 		if(varUnlockState == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
-		} else if(varUnlockState > 3) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
 		}
 		Gdx.app.getPreferences("gameprefs").flush();
 	}

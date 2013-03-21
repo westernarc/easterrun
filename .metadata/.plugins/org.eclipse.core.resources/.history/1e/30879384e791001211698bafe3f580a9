@@ -172,12 +172,12 @@ public class EasterRun implements ApplicationListener {
 	int constSignalFlashCountMax = 5;
 		
 	//Unlockables
-	//enum UNLOCKSTATE {none, boots, basket, watch}
+	enum UNLOCKSTATE {none, boots, basket, watch}
 	//Boots give faster lane switching
 	//Jacket gives greater max speed
 	//Basket gives 2x score on certain egg colors
 	//pendant gives 1 second activatable charge, 0.5 second duration, increases rock frequency
-	int varUnlockState;
+	UNLOCKSTATE varUnlockState;
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -260,13 +260,12 @@ public class EasterRun implements ApplicationListener {
 		ctrSignalFlashCount = 0;
 		
 		//Determine unlockable state
-		varUnlockState = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
-		//If the unlockstate is 0, set it back to 0;
-		//If it's the first run, then it will return default 0 and put a new integer in
-		if(varUnlockState == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
-		} else if(varUnlockState > 3) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+		int unlocks = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
+		switch(unlocks) {
+		
+		}
+		if(Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0) == 0) {
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
 		}
 		Gdx.app.getPreferences("gameprefs").flush();
 	}
