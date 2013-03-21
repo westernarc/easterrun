@@ -134,7 +134,7 @@ public class EasterRun implements ApplicationListener {
 	boolean invulnActive;
 	float invulnTimer;
 
-	final int constEggLimit = 3;
+	final int constEggLimit = 5;
 	int eggsFromLastSpawn;
 	int eggsFromThisSpawn;
 	int eggsFromLastTwoSpawns;
@@ -157,6 +157,19 @@ public class EasterRun implements ApplicationListener {
 	Music musBackground;
 	Sound sndDeath;
 	Sound sndEgg;
+	
+	//Sprites used to signal lanes to switch to during
+	//corners
+	Sprite sprCross1;
+	Sprite sprCross2;
+	Sprite sprCircle;
+	//When a corner is encountered, these sprites should flash 3 times then stay until the turn is complete
+	//There will be a timer for these, as well as a counter for how many times they've flashed
+	float tmrSignalFlash;
+	boolean flgSignalFlashOn;
+	float constSignalFlashGap = 0.1f;
+	int ctrSignalFlashCount;
+	int constSignalFlashCountMax = 5;
 	
 	//Unlockables
 	enum UNLOCKSTATE {none, boots, jacket, basket, pendant}
@@ -239,6 +252,11 @@ public class EasterRun implements ApplicationListener {
 
 		sprReset.setColor(1,1,1,resetAlpha);
 		resetTimer = 0;
+		
+		//Turn signal variables
+		tmrSignalFlash = 0;
+		flgSignalFlashOn = false;
+		ctrSignalFlashCount = 0;
 	}
 	
 	@Override
@@ -369,6 +387,11 @@ public class EasterRun implements ApplicationListener {
 		hiScoreText = "0";
 		scoreTextPosY = -screenHeight;
 		resetAlpha = 0;
+		
+		//Sprites for lane change
+		sprCross1 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
+		sprCross2 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
+		sprCircle = new Sprite(new Texture(Gdx.files.internal("textures/circle.png")));
 	}
 
 	@Override
@@ -530,7 +553,11 @@ public class EasterRun implements ApplicationListener {
 			}
 		}
 
-
+		if(flgSignalFlashOn){
+			sprCircle.draw(gameBatch);
+			sprCross1.draw(gameBatch);
+			sprCross2.draw(gameBatch);
+		}
 		gameBatch.end();
 		
 		//Draw ui elements over models
@@ -648,9 +675,23 @@ public class EasterRun implements ApplicationListener {
 		for(int i = 0; i < groundMax; i++) {
 			actGround[i].move(groundRate * tpf, 0, 0);
 			if(actGround[i].type == GroundActor.GROUNDS.cornerR) {
+				//If there is a corner active, start updating lane switch signs
+				tmrSignalFlash += tpf;
+				if(tmrSignalFlash > constSignalFlashGap && cornerPlaced) {
+					ctrSignalFlashCount++;
+					tmrSignalFlash = 0;
+				}
+				if((ctrSignalFlashCount % 2 == 1 || ctrSignalFlashCount > constSignalFlashCountMax) && cornerPlaced) {
+					flgSignalFlashOn = true;
+				} else {
+					flgSignalFlashOn = false;
+				}
 				
 				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
+					sprCross1.setPosition(screenWidth / 4f - sprCross1.getWidth()/2f, screenHeight / 3f - sprCross1.getHeight()/2f);
+					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
+					sprCircle.setPosition(screenWidth * 3f / 4f - sprCircle.getWidth()/2f, screenHeight / 3f - sprCircle.getHeight()/2f);
 				} 
 				if(actGround[i].position.x > -20) {
 					if(actPlayer.position.z > -1 && cornerPlaced && gameState == States.play) {
@@ -665,12 +706,29 @@ public class EasterRun implements ApplicationListener {
 						actGround[i].rotation.set(0,actGround[i].rotation.y + groundRate/10f,0);
 					} else {
 						actGround[i].rotation.set(0,90,0);
+						flgSignalFlashOn = false;
+						ctrSignalFlashCount = 0;
+						tmrSignalFlash = 0;
 					}
 					cornerPlaced = false;
 				}
 			} else if(actGround[i].type == GroundActor.GROUNDS.cornerL) {
+				tmrSignalFlash += tpf;
+				if(tmrSignalFlash > constSignalFlashGap && cornerPlaced) {
+					ctrSignalFlashCount++;
+					tmrSignalFlash = 0;
+				}
+				if((ctrSignalFlashCount % 2 == 1 || ctrSignalFlashCount > constSignalFlashCountMax) && cornerPlaced) {
+					flgSignalFlashOn = true;
+				} else {
+					flgSignalFlashOn = false;
+				}
+				
 				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
+					sprCircle.setPosition(screenWidth / 4f - sprCircle.getWidth()/2f, screenHeight / 3f - sprCircle.getHeight()/2f);
+					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
+					sprCross1.setPosition(screenWidth * 3f / 4f - sprCross1.getWidth()/2f, screenHeight / 3f - sprCross1.getHeight()/2f);
 				} 
 				if(actGround[i].position.x > -20) {
 					if(actPlayer.position.z < 1 && cornerPlaced && gameState == States.play) {
@@ -685,7 +743,9 @@ public class EasterRun implements ApplicationListener {
 						actGround[i].rotation.set(0,actGround[i].rotation.y - groundRate/10f,0);
 					} else {
 						actGround[i].rotation.set(0,-90,0);
-						
+						flgSignalFlashOn = false;
+						ctrSignalFlashCount = 0;
+						tmrSignalFlash = 0;
 					}
 					cornerPlaced = false;
 				}
