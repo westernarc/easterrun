@@ -1,0 +1,1158 @@
+package com.westernarc.easterrun;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import com.badlogic.gdx.ApplicationListener;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL10;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
+import com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry;
+import com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter;
+import com.westernarc.easterrun.Actors.Actor;
+import com.westernarc.easterrun.Actors.AnimActor;
+import com.westernarc.easterrun.Actors.GroundActor;
+import com.westernarc.easterrun.Actors.PlayerActor;
+import com.badlogic.gdx.graphics.g3d.materials.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.materials.Material;
+import com.badlogic.gdx.graphics.g3d.materials.ColorAttribute;
+import com.badlogic.gdx.math.Vector3;
+import com.westernarc.gdx.graphics.g2d.ParticleEffect;
+
+public class EasterRun implements ApplicationListener {
+	float screenWidth;
+	float screenHeight;
+	float tpf;
+	
+	//Use this to switch between g3dt and g3d
+	final boolean exporting = false;
+	
+	final float horizontalMax = 7.3f;
+	final float horizontalMin = -6;
+
+	private PerspectiveCamera gameCamera;
+	private SpriteBatch uiBatch;
+	private SpriteBatch gameBatch;
+	
+	//Ground
+	final int groundMax = 3;
+	final int groundLength = 348;
+	GroundActor[] actGround;
+	StillModel mdlGroundStraight;
+	StillModel mdlGroundCornerR;
+	StillModel mdlGroundCornerL;
+	StillModel mdlGroundOutcrop;
+	StillModel mdlGroundBridge;
+	final float constGroundBaseRate = 50;
+	final float constGroundMaxRate = 160;
+	float groundRate;
+	
+	PlayerActor actPlayer;
+	Texture txrPlayer;
+	Material matPlayer;
+	Texture txrPlayerRed;
+	Material matPlayerRed;
+	Texture txrPlayerWhite;
+	Material matPlayerWhite;
+	final float constPlayerX = -5;
+	
+	final int eggMax = 6;
+	Actor[] actEggs;
+	ArrayList<Actor> eggs;
+	final float eggBaseRate = 0.7f;
+	final float eggMaxRate = 0.4f;
+	float eggRate;
+	float eggTimer;
+	
+	float gameTimer;
+	float deltaGameTimer;
+	float deltaTime1;
+	float deltaTime2;
+	int gameScore;
+	int hiScore;
+	
+	float deadTimer;
+	final float deadTimerMax = 1;
+	
+	//Flags
+	enum States {title, play, dead, score, reset};
+	States gameState;
+	boolean scoreStored;
+	
+	//Title sprite, texture and alpha 
+	Sprite sprTitle;
+	Texture txrTitle;
+	float titleAlpha;
+	
+	//Game reset texture and alpha
+	Sprite sprReset;
+	Texture txrReset;
+	float resetAlpha;
+	float resetTimer;
+	float resetTimerMax = 0.1f;
+	
+	//Score location, for after player dies
+	float scoreTextPosY;
+	
+	BitmapFont uiFont;
+	//Time and score records
+	final float constTimeTextPosXOrigin = -300;
+	final float constScoreTextPosXOrigin = 280;
+	final float constScoreTextPosXTrans = 70;
+	final float constTimeTextPosXTrans = 40;
+	float timeTextPosX;
+	float scoreTextPosX;
+	float scoreTextScale; 
+	
+	//These variables are for the end score screen
+	String scoreText;
+	String hiScoreText;
+	int scoreIndent;
+	int hiScoreIndent;
+	
+	//Other game variables
+	final float constPowerupDuration = 4;
+	final float constPowerupEffect = 1.1f;
+	boolean powerupActive;
+	float powerupTimer;
+	
+	final float constInvulnDuration = 4;
+	final float constInvulnFadeTime = 3.7f;
+	boolean invulnActive;
+	float invulnTimer;
+
+	final int constEggLimit = 5;
+	int eggsFromLastSpawn;
+	int eggsFromThisSpawn;
+	int eggsFromLastTwoSpawns;
+		//For alternate grounds
+	boolean placeCorner;
+	boolean cornerPlaced;
+	int cornerLastPlaced;
+	boolean placeBridge;
+	int bridgeLastPlaced;
+	boolean placeOutcrop;
+	int outcropLastPlaced;
+	
+	//Particles
+	final static int constMaxEggEffects = 8;
+	ParticleEffect[] prtEggEffects;
+	ParticleEffect[] prtSpeedEffect;
+	ParticleEffect prtInvulnEffect;
+		
+	//Audio
+	Music musBackground;
+	Sound sndDeath;
+	Sound sndEgg;
+	
+	//Sprites used to signal lanes to switch to during
+	//corners
+	Sprite sprCross1;
+	Sprite sprCross2;
+	Sprite sprCircle;
+	//When a corner is encountered, these sprites should flash 3 times then stay until the turn is complete
+	//There will be a timer for these, as well as a counter for how many times they've flashed
+	float tmrSignalFlash;
+	boolean flgSignalFlashOn;
+	float constSignalFlashGap = 0.1f;
+	int ctrSignalFlashCount;
+	int constSignalFlashCountMax = 5;
+		
+	//Unlockables
+	//enum UNLOCKSTATE {none, boots, basket, watch}
+	//Boots give faster lane switching
+	//Jacket gives greater max speed
+	//Basket gives 2x score on certain egg colors
+	//pendant gives 1 second activatable charge, 0.5 second duration, increases rock frequency
+	int varUnlockState;
+	//When taking unlock state into account, just use varunlockstate == 1, 2, or 3
+	
+	//Jacket speed
+	final float constGroundMaxRateWithJacket = constGroundMaxRate * 1.5f;
+	
+	//Basket variables
+	//Timer for basket collection
+	float tmrBasketTimer;
+	//Max timer
+	final float varBasketTimerMax = 10;
+	//How many eggs you've collected towards basket bonus
+	int varBasketEggsCollected;
+	//How many eggs you need to collect, depends on ground rate
+	int varBasketEggsNeeded;
+	//Which type of egg you need.  Use eggs 0, 1, or 2
+	int varBasketEggTypeNeeded;
+	//Score bonus for retrieving eggs
+	int varBasketEggScoreBonus;
+	
+	//Stopwatch variables
+	boolean varStopwatchActive;
+	final int constStopwatchDuration = 3;
+	float tmrStopwatchTimer;
+	final float constStopwatchSlowEffect = 0.4f;
+	
+	public void initialize() {
+		groundRate = constGroundBaseRate;
+		
+		eggRate = eggBaseRate;
+		eggTimer = 0;
+		eggs = new ArrayList<Actor>();
+		
+		gameTimer = 0;
+		gameScore = 0;
+		
+		gameState = States.title;
+		titleAlpha = 0;
+		
+		actPlayer.position.x = 20;
+		
+		timeTextPosX = constTimeTextPosXOrigin;
+		scoreTextPosX = screenWidth + constScoreTextPosXOrigin;
+
+		deadTimer = 0;
+		
+		actPlayer.setMaterial(matPlayer);
+		actPlayer.rotation.set(0,0,0);
+		scoreTextScale = 1;
+		scoreStored = false;
+		
+		powerupActive = false;
+		powerupTimer = 0;
+		
+		invulnActive = false;
+		invulnTimer = 0;
+		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
+		
+		deltaGameTimer = 0;
+		deltaTime1 = 0;
+		deltaTime2 = 0;
+		
+		prtEggEffects = new ParticleEffect[constMaxEggEffects];
+		for(int i = 0; i < constMaxEggEffects; i++) {
+			prtEggEffects[i] = new ParticleEffect();
+			prtEggEffects[i].load(Gdx.files.internal("data/eggpop.p"), Gdx.files.internal("textures/"));
+		}
+		
+		prtSpeedEffect = new ParticleEffect[3];
+		for(int i = 0; i < 3; i++) {
+			prtSpeedEffect[i] = new ParticleEffect();
+		}
+		
+		prtSpeedEffect[0].load(Gdx.files.internal("data/speedtrail.p"), Gdx.files.internal("textures/"));
+		prtSpeedEffect[1].load(Gdx.files.internal("data/speedtrail2.p"), Gdx.files.internal("textures/"));
+		prtSpeedEffect[2].load(Gdx.files.internal("data/speedtrailblast.p"), Gdx.files.internal("textures/"));
+		
+		prtSpeedEffect[0].start();
+		prtSpeedEffect[1].start();
+		prtSpeedEffect[2].start();
+		
+		prtSpeedEffect[0].setPosition(0,screenHeight/3);
+		prtSpeedEffect[1].setPosition(0,screenHeight/3);
+		prtSpeedEffect[2].setPosition(0,screenHeight*2f/5f);
+		
+		prtInvulnEffect = new ParticleEffect();
+		prtInvulnEffect.load(Gdx.files.internal("data/invuln.p"), Gdx.files.internal("textures/"));
+		prtInvulnEffect.start();
+		
+		placeCorner = false;
+		cornerPlaced = false;
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i].type = GroundActor.GROUNDS.straight;
+			actGround[i].model = mdlGroundStraight;
+			actGround[i].position.set((i-1) * -groundLength, 0, 0);
+			actGround[i].rotation.set(0,0,0);
+		}
+
+		sprReset.setColor(1,1,1,resetAlpha);
+		resetTimer = 0;
+		
+		//Turn signal variables
+		tmrSignalFlash = 0;
+		flgSignalFlashOn = false;
+		ctrSignalFlashCount = 0;
+		
+		//Determine unlockable state
+		varUnlockState = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
+		//If the unlockstate is 0, set it back to 0;
+		//If it's the first run, then it will return default 0 and put a new integer in
+		if(varUnlockState == 0) {
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+		} else if(varUnlockState > 3) {
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+		}
+		Gdx.app.getPreferences("gameprefs").flush();
+	}
+	
+	@Override
+	public void create() {		
+		screenWidth = Gdx.graphics.getWidth();
+		screenHeight = Gdx.graphics.getHeight();
+		
+		if(Gdx.app.getPreferences("gameprefs").getInteger("hiscore",0) == 0) {
+			Gdx.app.getPreferences("gameprefs").putInteger("hiscore", 0);
+			Gdx.app.getPreferences("gameprefs").flush();
+		}
+		
+		//Set up cameras
+		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
+		gameCamera.near = 0.1f;
+		gameCamera.far = 1000;
+		gameCamera.position.set(0,28,0);	
+		gameCamera.lookAt(-20, 0, 0);
+		
+		uiBatch = new SpriteBatch();
+		gameBatch = new SpriteBatch();
+		uiFont = new BitmapFont(Gdx.files.internal("text/BimboJVS_B64OJ.fnt"), false);
+		
+		txrTitle = new Texture(Gdx.files.internal("textures/title.png"));
+		sprTitle = new Sprite(txrTitle);
+		sprTitle.setPosition(screenWidth/2 - sprTitle.getWidth()/2, screenHeight/2 - sprTitle.getHeight()/2);
+		if(screenWidth > screenHeight) {
+			sprTitle.setScale(screenHeight / sprTitle.getHeight());
+		} else {
+			sprTitle.setScale(screenWidth / sprTitle.getWidth());
+		}
+		
+		txrReset = new Texture(Gdx.files.internal("textures/reset.png"));
+		sprReset = new Sprite(txrReset);
+		sprReset.scale(screenHeight * 1.5f / sprReset.getWidth());
+		sprReset.setPosition(screenWidth/2 - sprReset.getWidth()/2, screenHeight/2 - sprReset.getHeight()/2);
+		
+		Texture txrEnvTex = new Texture(Gdx.files.internal("textures/grass.png"));
+		Material matEnvMat = new Material("mat", new TextureAttribute(txrEnvTex, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		
+		//Load models
+		//Load ground
+		actGround = new GroundActor[groundMax];
+		mdlGroundStraight = loadModel("models/ground");
+		mdlGroundCornerR = loadModel("models/corner");
+		mdlGroundCornerL = loadModel("models/cornerL");
+		mdlGroundBridge = loadModel("models/bridge");
+		mdlGroundOutcrop = loadModel("models/outcrop");
+		mdlGroundStraight.setMaterial(matEnvMat);
+		mdlGroundCornerR.setMaterial(matEnvMat);
+		mdlGroundCornerL.setMaterial(matEnvMat);
+		mdlGroundBridge.setMaterial(matEnvMat);
+		mdlGroundOutcrop.setMaterial(matEnvMat);
+		
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i] = new GroundActor();
+			actGround[i].type = GroundActor.GROUNDS.straight;
+			actGround[i].model = mdlGroundStraight;
+			actGround[i].texture = txrEnvTex;
+			actGround[i].material = matEnvMat;
+			actGround[i].move((i-1) * -groundLength, 0, 0);
+		}
+		
+		//Load player
+		actPlayer = new PlayerActor();
+		actPlayer.model = loadModel("models/pascha/player1");
+		//Three textures, one normal one for player getting hit one for invuln
+		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
+		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+		txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		//Set texture to the normal one
+		actPlayer.texture = txrPlayer;
+		actPlayer.material = matPlayer;
+		//actPlayer.setMaterial(matPlayer);
+		
+		//Load player animation frames
+		for(int curFrame = 1; curFrame < 20; curFrame++) {
+			actPlayer.walkFrames[curFrame] = loadModel("models/pascha/player" + curFrame);
+			actPlayer.walkFrames[curFrame].setMaterial(matPlayer);
+		}
+		for(int curFrame = 1; curFrame < 10; curFrame++) {
+			actPlayer.runFrames[curFrame] = loadModel("models/pascharun/run" + curFrame);
+			actPlayer.runFrames[curFrame].setMaterial(matPlayer);
+		}
+		for(int curFrame = 1; curFrame < 5; curFrame++) {
+			actPlayer.flyFrames[curFrame] = loadModel("models/paschafly/flight" + curFrame);
+			actPlayer.flyFrames[curFrame].setMaterial(matPlayer);
+		}
+		for(int curFrame = 1; curFrame < 7; curFrame++) {
+			actPlayer.jumpFrames[curFrame] = loadModel("models/paschajump/jump" + curFrame);
+			actPlayer.jumpFrames[curFrame].setMaterial(matPlayer);
+		}
+		actPlayer.position.x = 20;
+		actPlayer.setAnim(PlayerActor.anims.walk);
+		
+		//Load eggs
+		//EggMax array holds eggMax-2 egg actors, one powerup, and 1 bomb actor
+		actEggs = new Actor[eggMax];
+		for(int i = 1; i <= eggMax; i++) {
+			actEggs[i - 1] = new Actor(Actor.Type.Egg);
+			if(i != eggMax) {
+				//For eggs[0] to eggs[eggMax-1] keep type Egg
+				actEggs[i - 1].model = loadModel("models/egg" + i);
+				if(i == 4) actEggs[3].actorType = Actor.Type.Powerup;
+				else if(i == 5) actEggs[4].actorType = Actor.Type.Invuln;
+			} else {
+				//Set the type to bomb
+				actEggs[i - 1].model = loadModel("models/rock");
+				actEggs[i - 1].actorType = Actor.Type.Bomb;
+			}
+			actEggs[i - 1].texture = txrEnvTex;
+			actEggs[i - 1].material = matEnvMat;
+			actEggs[i - 1].model.setMaterial(matEnvMat);
+		}
+		
+		
+		//Load audio
+		musBackground = Gdx.audio.newMusic(Gdx.files.internal("audio/bgm.mp3"));
+		musBackground.setLooping(true);
+		musBackground.play();
+		sndDeath = Gdx.audio.newSound(Gdx.files.internal("audio/clang.wav"));
+		sndEgg = Gdx.audio.newSound(Gdx.files.internal("audio/pop.wav"));
+		//Initialize variables
+		initialize();
+		//Vars to only be initialized once
+		scoreText = "0";
+		hiScoreText = "0";
+		scoreTextPosY = -screenHeight;
+		resetAlpha = 0;
+		
+		//Sprites for lane change
+		sprCross1 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
+		sprCross2 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
+		sprCircle = new Sprite(new Texture(Gdx.files.internal("textures/circle.png")));
+	}
+
+	@Override
+	public void dispose() {
+		uiBatch.dispose();
+	}
+
+	@Override
+	public void render() {		
+		Gdx.gl10.glClearColor(0.64f, 0.78f, 0.35f, 1);
+		Gdx.gl10.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+		
+		//Update game flow timers
+		if(gameState != States.dead) {
+			tpf = Gdx.graphics.getDeltaTime();
+			
+			//Update stopwatch
+			if(varStopwatchActive){
+				tmrStopwatchTimer += tpf;
+			}
+			
+			if(varStopwatchActive) {
+				tpf *=  constStopwatchSlowEffect;
+			}
+		} else {
+			//gameState == States.dead
+			tpf = 0;
+			deadTimer += Gdx.graphics.getDeltaTime();
+			
+			if(deadTimer > deadTimerMax) {
+				deadTimer = 0;
+				gameState = States.score;
+			}
+		}
+				
+		//Update objects
+		update(tpf);
+				
+		Gdx.gl10.glEnable(GL10.GL_DEPTH_TEST);
+		Gdx.gl10.glEnable(GL10.GL_TEXTURE_2D);
+		Gdx.gl10.glEnable(GL10.GL_COLOR_MATERIAL);
+		
+		//Draw models
+		gameCamera.update();
+		gameCamera.apply(Gdx.gl10);
+		
+		//Draw ground
+		for(int i = 0; i < groundMax; i++) {
+			Gdx.gl10.glPushMatrix();
+			Gdx.gl10.glTranslatef(actGround[i].position.x, actGround[i].position.y, actGround[i].position.z);
+			Gdx.gl10.glRotatef(actGround[i].rotation.y, 0, 1, 0);
+			actGround[i].model.render();
+			Gdx.gl10.glPopMatrix();
+		}
+		
+		//Draw player
+		Gdx.gl10.glPushMatrix();
+		Gdx.gl10.glTranslatef(actPlayer.position.x, actPlayer.position.y, actPlayer.position.z);
+		Gdx.gl10.glRotatef(actPlayer.rotation.y, 0, 1, 0);
+		actPlayer.model.render();
+		Gdx.gl10.glPopMatrix();
+		
+		//Draw eggs, update them too
+		//Collision with eggs are checked in this loop
+		Iterator<Actor> eggItr = eggs.iterator();
+		while(eggItr.hasNext()) {		
+			//Draw
+			Actor currentEgg = eggItr.next();
+			Gdx.gl10.glPushMatrix();
+			Gdx.gl10.glTranslatef(currentEgg.position.x, currentEgg.position.y, currentEgg.position.z);
+			currentEgg.model.render();
+			Gdx.gl10.glPopMatrix();
+			
+			//Update
+			currentEgg.update(tpf);
+			currentEgg.move(groundRate * tpf, 0, 0);
+			if(currentEgg.position.x > 40 || currentEgg.position.y < -10) eggItr.remove();
+			
+			//If the eggs are near the player, do collision detection
+			if(currentEgg.position.x > -20 && currentEgg.collidesWith(actPlayer) && gameState == States.play) {
+				switch(currentEgg.actorType) {
+				case Bomb:
+					onBombHit();
+					currentEgg.collisionActive = false;
+					break;
+				case Egg:
+					onEggHit(currentEgg);
+					currentEgg.collisionActive = false;
+					break;
+				case Ground:
+					break;
+				case Player:
+					break;
+				case Powerup:
+					onEggHit(currentEgg);
+					onPowerupHit();
+					currentEgg.collisionActive = false;
+					break;
+				case Invuln:
+					onEggHit(currentEgg);
+					onInvulnHit();
+					currentEgg.collisionActive = false;
+				default:
+					break;
+				}
+			}
+				
+		}
+	
+		//End draw models
+		Gdx.gl10.glDisable(GL10.GL_DEPTH_TEST);
+		Gdx.gl10.glDisable(GL10.GL_TEXTURE_2D);
+		
+		//Draw Particles, update them too
+		gameBatch.begin();
+		for(int i = 0; i < constMaxEggEffects; i++) {
+			if(!prtEggEffects[i].isComplete()) {
+				if(gameState != States.dead) {
+					prtEggEffects[i].update(tpf);
+					prtEggEffects[i].setPosition(prtEggEffects[i].getX(0), prtEggEffects[i].getY(0) - groundRate /10f);
+				}
+				prtEggEffects[i].draw(gameBatch);
+			}
+		}
+		//Invuln particles
+		if(invulnActive && invulnTimer < constInvulnFadeTime) {
+			float prtX = 0;
+			float prtY = 0;
+			if(actPlayer.position.z > 5) {
+				prtX = -screenWidth  / 4f;
+			} else if(actPlayer.position.z < -5) {
+				prtX = screenWidth / 4f;
+			}
+			if(prtInvulnEffect.isComplete())
+				prtInvulnEffect.start();
+			if(gameState != States.dead)
+				prtInvulnEffect.update(tpf);
+			prtInvulnEffect.setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
+			prtInvulnEffect.draw(gameBatch);
+		}
+		
+		//Speed effect particles
+		if(groundRate > 80 && gameState == States.play) {
+			float prtX = 0;
+			float prtY = 0;
+			if(actPlayer.position.z > 5) {
+				prtX = -screenWidth  / 4f;
+			} else if(actPlayer.position.z < -5) {
+				prtX = screenWidth / 4f;
+			}
+
+			prtSpeedEffect[0].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
+			if(gameState != States.dead) { 
+				prtSpeedEffect[0].update(tpf);
+			}
+			prtSpeedEffect[0].draw(gameBatch);
+			
+			if(groundRate > 100) {
+				prtSpeedEffect[1].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
+				prtSpeedEffect[1].update(tpf);
+				prtSpeedEffect[1].draw(gameBatch);
+				
+				if(groundRate > 120) {
+					prtSpeedEffect[2].setPosition((screenWidth/2) + prtX, screenHeight*2/5f + prtY);
+					prtSpeedEffect[2].update(tpf);
+					prtSpeedEffect[2].draw(gameBatch);
+				}
+			}
+		}
+
+		if(flgSignalFlashOn){
+			sprCircle.draw(gameBatch);
+			sprCross1.draw(gameBatch);
+			sprCross2.draw(gameBatch);
+		}
+		gameBatch.end();
+		
+		//Draw ui elements over models
+		uiBatch.begin();
+		sprTitle.draw(uiBatch);
+		uiFont.draw(uiBatch, Math.round(gameTimer) + "ft", timeTextPosX, screenHeight - 20);
+		uiFont.setScale(0.5f);
+		uiFont.draw(uiBatch, Math.round(deltaTime2*10)/10f + "ft/s", timeTextPosX, screenHeight - uiFont.getCapHeight()*2 - 20);
+		uiFont.setScale(1);
+		
+		//Handle score display scaling
+		if(scoreTextScale > 1) scoreTextScale -= tpf  * 4;
+		if(scoreTextScale < 1) scoreTextScale = 1;
+		uiFont.setScale(scoreTextScale);
+		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (numOfDigits(gameScore) * uiFont.getSpaceWidth())*1.5f, screenHeight - 20);
+		uiFont.setScale(1);
+		
+		//Deal with total scores
+		int totalScore = gameScore + (int)gameTimer;
+		//Draw score display if gamestate is States.score
+		if(gameState == States.score) {
+			if(!scoreStored) {
+				Preferences prefs = Gdx.app.getPreferences("gameprefs");
+				prefs.getInteger("hiscore", 0);
+				hiScore = prefs.getInteger("hiscore");
+				scoreText = String.valueOf(totalScore);
+				hiScoreText = String.valueOf(hiScore);
+				scoreIndent = (int)uiFont.getSpaceWidth() * numOfDigits(totalScore);
+				hiScoreIndent = (int)uiFont.getSpaceWidth() *  numOfDigits(hiScore);
+				
+				//If the score is a hiscore, store it
+				if(totalScore > hiScore) {
+					prefs.putInteger("hiscore", totalScore);
+					hiScore = totalScore;
+					prefs.flush();
+				}
+				scoreStored = true;
+			}
+			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1200;
+		} else {
+			if(scoreTextPosY > -screenHeight) scoreTextPosY -= tpf * 1200; else scoreTextPosY = -screenHeight;
+		}
+		//Only draw the scores if they are within view
+		if(scoreTextPosY > -320) {
+			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 10, scoreTextPosY + 150);
+			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 8, scoreTextPosY - 50);
+			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - scoreIndent, scoreTextPosY + 150 - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
+		}
+		
+		//If the game is being reset draw reset fader
+		sprReset.draw(uiBatch);
+		uiBatch.end();
+		//End drawing 2d
+	}
+	public void update(float tpf) {
+		//Update title sprite
+		if(gameState == States.title && titleAlpha < 1) {
+			titleAlpha += 1/30f;
+			if(titleAlpha > 1) titleAlpha = 1;
+			sprTitle.setColor(1,1,1,titleAlpha);
+		} else if(gameState != States.title && titleAlpha > 0) {
+			titleAlpha -= 1/30f;
+			if(titleAlpha < 0) titleAlpha = 0;
+			sprTitle.setColor(1,1,1,titleAlpha);
+		}
+		//Update reset sprite
+		if(gameState == States.reset && resetAlpha < 1) {
+			resetAlpha += 1/30f;
+			if(resetAlpha > 1) {
+				resetAlpha = 1;
+			}
+			sprReset.setColor(1,1,1,resetAlpha);
+		}else if(gameState == States.reset && resetAlpha == 1) {
+			resetTimer += tpf;
+			if(resetTimer >= resetTimerMax) {
+				resetTimer = 0;
+				initialize();
+				gameState = States.play;
+			}
+		}else if (gameState != States.reset && resetAlpha > 0) {
+			resetAlpha -= 1/30f;
+			if(resetAlpha < 0) resetAlpha = 0;
+			sprReset.setColor(1,1,1,resetAlpha);
+		}
+		
+		//Handle getting change in distance
+		//Update score displays
+		if(gameState == States.play) {
+			if(timeTextPosX < constTimeTextPosXTrans) {
+				timeTextPosX += tpf * 450;
+			} else {
+				if(deltaGameTimer == 0) {
+					deltaTime1 = gameTimer;
+				}
+				gameTimer += tpf * groundRate / 10;
+				deltaGameTimer += tpf;
+				if(deltaGameTimer > 0.5) {
+					deltaGameTimer = 0;
+					deltaTime2 = (gameTimer - deltaTime1) * 2;
+				}
+			}
+			
+			
+			if(scoreTextPosX > screenWidth - constScoreTextPosXTrans)
+				scoreTextPosX -= tpf * 450;
+		} else if(gameState == States.score) {
+			if(timeTextPosX > constTimeTextPosXOrigin) 
+				timeTextPosX -= tpf * 450;
+			if(scoreTextPosX < screenWidth + constScoreTextPosXOrigin)
+				scoreTextPosX += tpf * 450;
+		}
+		
+		//Update ground
+		for(int i = 0; i < groundMax; i++) {
+			actGround[i].move(groundRate * tpf, 0, 0);
+			if(actGround[i].type == GroundActor.GROUNDS.cornerR) {
+				//If there is a corner active, start updating lane switch signs
+				tmrSignalFlash += tpf;
+				if(tmrSignalFlash > constSignalFlashGap && cornerPlaced) {
+					ctrSignalFlashCount++;
+					tmrSignalFlash = 0;
+				}
+				if((ctrSignalFlashCount % 2 == 1 || ctrSignalFlashCount > constSignalFlashCountMax) && cornerPlaced) {
+					flgSignalFlashOn = true;
+				} else {
+					flgSignalFlashOn = false;
+				}
+				
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
+					cornerPlaced = true;
+					sprCross1.setPosition(screenWidth / 4f - sprCross1.getWidth()/2f, screenHeight / 3f - sprCross1.getHeight()/2f);
+					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
+					sprCircle.setPosition(screenWidth * 3f / 4f - sprCircle.getWidth()/2f, screenHeight / 3f - sprCircle.getHeight()/2f);
+				} 
+				if(actGround[i].position.x > -20) {
+					if(actPlayer.position.z > -1 && cornerPlaced && gameState == States.play) {
+						onBombHit();
+						if(!invulnActive) {
+							actPlayer.rotation.set(0, 90, 0);
+							actPlayer.position.z = 5.5f;
+							actPlayer.position.x = -15;
+						}
+					}
+					if(actGround[i].rotation.y < 90) {
+						actGround[i].rotation.set(0,actGround[i].rotation.y + groundRate/10f,0);
+					} else {
+						actGround[i].rotation.set(0,90,0);
+						flgSignalFlashOn = false;
+						ctrSignalFlashCount = 0;
+						tmrSignalFlash = 0;
+					}
+					cornerPlaced = false;
+				}
+			} else if(actGround[i].type == GroundActor.GROUNDS.cornerL) {
+				tmrSignalFlash += tpf;
+				if(tmrSignalFlash > constSignalFlashGap && cornerPlaced) {
+					ctrSignalFlashCount++;
+					tmrSignalFlash = 0;
+				}
+				if((ctrSignalFlashCount % 2 == 1 || ctrSignalFlashCount > constSignalFlashCountMax) && cornerPlaced) {
+					flgSignalFlashOn = true;
+				} else {
+					flgSignalFlashOn = false;
+				}
+				
+				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
+					cornerPlaced = true;
+					sprCircle.setPosition(screenWidth / 4f - sprCircle.getWidth()/2f, screenHeight / 3f - sprCircle.getHeight()/2f);
+					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
+					sprCross1.setPosition(screenWidth * 3f / 4f - sprCross1.getWidth()/2f, screenHeight / 3f - sprCross1.getHeight()/2f);
+				} 
+				if(actGround[i].position.x > -20) {
+					if(actPlayer.position.z < 1 && cornerPlaced && gameState == States.play) {
+						onBombHit();
+						if(!invulnActive) {
+							actPlayer.rotation.set(0, -90, 0);
+							actPlayer.position.z = -5.5f;
+							actPlayer.position.x = -15;
+						}
+					}
+					if(actGround[i].rotation.y > -90) {
+						actGround[i].rotation.set(0,actGround[i].rotation.y - groundRate/10f,0);
+					} else {
+						actGround[i].rotation.set(0,-90,0);
+						flgSignalFlashOn = false;
+						ctrSignalFlashCount = 0;
+						tmrSignalFlash = 0;
+					}
+					cornerPlaced = false;
+				}
+			}
+			
+			//Ground has gone past player; reset its position.  'recycle' it.
+			if(actGround[i].position.x > groundLength) {
+				//Chance to trigger turn: 0.05
+				//Only trigger turns if speed is above threshhold
+				placeCorner = (Math.random() > 0.4f && cornerLastPlaced == 0 && (groundRate > 120)) ? true : false;
+				cornerLastPlaced++;
+				if(cornerLastPlaced > groundMax) cornerLastPlaced = 0;
+				if(actGround[i].type == GroundActor.GROUNDS.cornerL || actGround[i].type == GroundActor.GROUNDS.cornerR) {
+					actGround[i].type = GroundActor.GROUNDS.straight;
+					actGround[i].model = mdlGroundStraight;
+					actGround[i].rotation.set(0,0,0);
+					actGround[i].move(groundLength/2, 0, 0);
+				}
+				//Trigger outcrop
+				double outcropOrBridge = Math.random();
+				placeOutcrop = (outcropOrBridge < 0.3 && outcropLastPlaced == 0 && !placeCorner && (groundRate > 70)) ? true : false;
+				outcropLastPlaced++;
+				if(outcropLastPlaced > groundMax * 3) outcropLastPlaced = 0;
+				
+				actGround[i].move(-groundMax * groundLength, 0, 0);
+				
+				//Trigger bridge
+				placeBridge = (outcropOrBridge >= 0.3 && bridgeLastPlaced == 0 && !placeCorner && (groundRate > 70)) ? true : false;
+				bridgeLastPlaced++;
+				if(bridgeLastPlaced > groundMax * 3) bridgeLastPlaced = 0;
+				
+				//Reset moved back grounds
+				if(actGround[i].type == GroundActor.GROUNDS.bridge || actGround[i].type == GroundActor.GROUNDS.outcrop){
+					actGround[i].type = GroundActor.GROUNDS.straight;
+					actGround[i].model = mdlGroundStraight;
+				}
+				
+				
+				if(placeCorner && (groundRate > 120)) {
+					//50/50 chance for the turn to be left or right.  Not important
+					if(Math.random() < 0.5) {
+						actGround[i].model = mdlGroundCornerL;
+						actGround[i].type = GroundActor.GROUNDS.cornerL;
+					} else {
+						actGround[i].model = mdlGroundCornerR;
+						actGround[i].type = GroundActor.GROUNDS.cornerR;
+					}
+					actGround[i].move(-groundLength/2, 0, 0);
+					placeCorner = false;
+				} else if(placeBridge && (groundRate > 80)) {
+					actGround[i].model = mdlGroundBridge;
+					actGround[i].type = GroundActor.GROUNDS.bridge;
+					placeBridge = false;
+				} else if(placeOutcrop) {
+					actGround[i].model = mdlGroundOutcrop;
+					actGround[i].type = GroundActor.GROUNDS.outcrop;
+				}
+			}
+		}
+		
+		//Update player
+		if(gameState == States.play) {
+			actPlayer.update(tpf);
+			if(groundRate < 80) {
+				if(actPlayer.position.y > 0) {
+					actPlayer.setAnim(PlayerActor.anims.jump);
+				} else {
+					if(actPlayer.currentAnim != PlayerActor.anims.walk) {
+						actPlayer.setAnim(PlayerActor.anims.walk);
+						actPlayer.currentFrame = 1;
+					}
+				}
+			} else if(groundRate < 130) {
+				if(actPlayer.position.y > 0) {
+					actPlayer.setAnim(PlayerActor.anims.fly);
+				} else {
+					actPlayer.setAnim(PlayerActor.anims.run);
+				}
+			} else {
+				actPlayer.setAnim(PlayerActor.anims.fly);
+			}
+		}
+
+		if(gameState == States.play && actPlayer.position.x > constPlayerX) actPlayer.position.x -= 15 * tpf;
+		else if(gameState == States.score && actPlayer.position.x < 20) actPlayer.position.x += groundRate * tpf;
+		
+		if(actPlayer.position.y < 0) {
+			actPlayer.position.y = 0; 
+			actPlayer.velocity.y = 0;
+			actPlayer.acceleration.y = 0;
+		}
+		
+		
+		//Update eggs
+		//TO ALLOW THE GAME TO RUN OVER THE EGG LIST ONLY ONCE, THE INDIVIDUAL EGGS
+		//ARE UPDATED IN THE RENDER METHOD
+		//CREATE NEW EGGS HERE
+		if(powerupActive) 
+			eggTimer += tpf * (groundRate / constGroundBaseRate);
+		else
+			eggTimer += tpf;
+		
+			
+		//Scale eggrate based on time passed
+		eggRate = eggBaseRate - (gameTimer / 800f) * eggBaseRate;
+		if(eggRate < eggMaxRate) eggRate = eggMaxRate;
+		
+		if(eggTimer > eggRate && gameState == States.play && !cornerPlaced) {
+			eggTimer = 0;
+			//3 slots
+			eggsFromThisSpawn = 0;
+			for(int curSlot = 0; curSlot < 3; curSlot++) {
+				//Calculate egg type
+				double eggRandType = Math.random();
+				int eggType = 0;
+				if(eggRandType < 0.3) eggType = 0;
+				else if(eggRandType < 0.6) eggType = 1;
+				else if(eggRandType < 0.79) eggType = 2;
+				else if(eggRandType < 0.84) eggType = 3;
+				else if(eggRandType < 0.85) eggType = 4;
+				else if(eggRandType >= 0.85 && eggsFromThisSpawn < 2 && (eggsFromLastSpawn + eggsFromThisSpawn) < constEggLimit && eggsFromLastTwoSpawns < constEggLimit) {
+					//Spawn hazard
+					eggType = 5;
+					eggsFromThisSpawn++;
+				}
+				
+				//80% chance to spawn egg
+				if(Math.random() > 0.2) {
+					Actor newEgg = actEggs[eggType].clone();
+					newEgg.position.x = -groundLength * 0.5f;
+					newEgg.position.z = -6 + curSlot * 6;
+					eggs.add(newEgg);
+				}
+			}
+			eggsFromLastTwoSpawns = eggsFromLastSpawn + eggsFromThisSpawn;
+			eggsFromLastSpawn = eggsFromThisSpawn;
+		}
+		
+		if(gameState == States.score) {
+			if(groundRate > constGroundBaseRate){
+				groundRate -= tpf * 20;
+			} else {
+				groundRate = constGroundBaseRate;
+			}
+		}
+		//Update powerup effects
+		if(powerupActive || invulnActive) {
+			if(powerupActive) {
+				powerupTimer += tpf;
+				
+				//Reset when powerup timer hits powerup duration
+				if(powerupTimer > constPowerupDuration) {
+					powerupActive = false;
+					powerupTimer = 0;
+				}
+			} 
+			if(invulnActive) {
+				invulnTimer += tpf;
+				//Start fading out the invulnerability
+				if(invulnTimer > constInvulnFadeTime) {
+					//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
+					//the speed falls to the original speed
+					
+					groundRate = constGroundMaxRate;
+					resetAlpha = 0.9f;
+				}
+				if(invulnTimer > constInvulnDuration) {
+					
+					invulnActive = false;
+					invulnTimer = 0;
+					groundRate = constGroundMaxRate;
+					actPlayer.setMaterial(matPlayer);
+				}
+			}
+		} else {
+			if(groundRate > constGroundBaseRate) {
+				groundRate -= tpf * 0.5;
+				actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
+			} else {
+				groundRate = constGroundBaseRate;
+			}
+		}
+		
+		//Handle Input
+		handleTouch();
+	}
+	@Override
+	public void resize(int width, int height) {
+	}
+
+	@Override
+	public void pause() {
+	}
+
+	@Override
+	public void resume() {
+	}
+	public void onJump() {
+		if(actPlayer.position.y == 0) {
+			actPlayer.velocity.y = 60;
+			actPlayer.acceleration.y = -200;
+		}
+	}
+	public void handleTouch() {
+		if(Gdx.input.isKeyPressed(Keys.D)){
+			placeCorner = true;
+		}
+		if(Gdx.input.isKeyPressed(Keys.S)) {
+			onInvulnHit();
+		}
+		if(Gdx.input.isKeyPressed(Keys.Z)) {
+			varStopwatchActive = true;
+		}
+		float x = Gdx.input.getX() - screenWidth / 2f;
+		float y = Gdx.input.getY() - screenHeight / 2f;
+		float dX = Gdx.input.getDeltaX();
+		float dY = Gdx.input.getDeltaY();
+		//React to touch depending on state
+		switch(gameState) {
+		case play:
+			//If dY is < than -20 make the player jump
+			//if(dY < -20) onJump();
+			//Divide the screen into 3 lanes
+			if(x < -screenWidth/6f) {
+				if(actPlayer.position.z > 6.2) {
+					actPlayer.velocity.z = -25 * Math.abs(actPlayer.position.z - 6);
+				} else if(actPlayer.position.z < 5.8) {
+					actPlayer.velocity.z = 25 * Math.abs(actPlayer.position.z - 6);
+				} else {
+					actPlayer.velocity.z = 0;
+				}
+			} else if(x > screenWidth/6f) {
+				if(actPlayer.position.z > -5.8) {
+					actPlayer.velocity.z = -25 * Math.abs(-6 - actPlayer.position.z);
+				} else if(actPlayer.position.z < -6.2) {
+					actPlayer.velocity.z = 25 * Math.abs(-6 - actPlayer.position.z);
+				} else {
+					actPlayer.velocity.z = 0;
+				}
+			} else {
+				if(actPlayer.position.z > 0.2) {
+					actPlayer.velocity.z = -25 * Math.abs(actPlayer.position.z - 0);
+				} else if(actPlayer.position.z < -0.2) {
+					actPlayer.velocity.z = 25 * Math.abs(actPlayer.position.z - 0);
+				} else {
+					actPlayer.velocity.z = 0;
+				}
+			}
+			
+			//actPlayer.position.z += -dX / 16f;
+			
+			if(actPlayer.position.z > horizontalMax)actPlayer.position.z = horizontalMax;
+			else if(actPlayer.position.z < horizontalMin)actPlayer.position.z = horizontalMin;
+			
+			break;
+			
+		case score:
+				//Wait for score to show fully
+				if(scoreTextPosY >= screenHeight/2 && Gdx.input.isTouched()) {
+					gameState = States.reset;
+				}
+			break;
+			
+		case title:
+			//If title is clicked, continue to Play state
+			//Only progress if the title is fully faded in
+			if(titleAlpha == 1  && Gdx.input.isTouched())
+				gameState = States.play;
+			break;
+			
+		default:
+			break;
+		
+		}		
+	}
+	
+	public void onEggHit(Actor currentEgg) {
+		//TODO Hitting eggs not specific
+		currentEgg.velocity.y = 50;
+		currentEgg.velocity.x = -70;
+		currentEgg.velocity.z = (float)(Math.random()-0.5) * 30;
+		currentEgg.acceleration.y = -200;
+		currentEgg.acceleration.x = 200;
+		currentEgg.collisionActive = false;
+		gameScore += 10;
+		scoreTextScale = 1.5f;
+		Vector3 prtVector = new Vector3(screenWidth/2,screenHeight/3,0);
+		
+		if(currentEgg.position.z > 1)
+			prtVector.x -= screenWidth/4;
+		else if(currentEgg.position.z < -1)
+			prtVector.x += screenWidth/4;
+		
+		createParticleEffect(prtVector);
+		sndEgg.play();
+	}
+	public void onBombHit() {
+		if(!invulnActive) {
+			gameState = States.dead;
+			actPlayer.setMaterial(matPlayerRed);
+			sndDeath.play();
+		}
+	}
+	
+	public void onPowerupHit() {
+		//If powerup is not already active, increase animation frame rate and ground rate
+		if(!invulnActive) {
+			
+			if(groundRate >= constGroundMaxRate)
+				groundRate = constGroundMaxRate;
+			else 
+				groundRate = groundRate * constPowerupEffect;
+			
+			actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
+			powerupActive = true;
+			powerupTimer = 0;
+		}
+	}
+	
+	public void onInvulnHit() {
+		if(!invulnActive) {
+			invulnActive = true;
+			groundRate = constGroundMaxRate * 2;
+			resetAlpha = 0.9f;
+			actPlayer.setMaterial(matPlayerWhite);
+		}
+	}
+	
+	//Utility method to find number of digits in a number
+	//Used for centering text and score
+	private int numOfDigits(int in) {
+		int numOfDigits = 1;
+		while(in > 1) {
+			in /= 10;
+			numOfDigits++;
+		}
+		return numOfDigits;
+	}
+	
+	private StillModel loadModel(String path) {
+		StillModel model;
+		if(exporting) {
+			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3dt"));
+			G3dExporter.export(model, Gdx.files.absolute(path + ".g3d"));
+		} else {
+			model = ModelLoaderRegistry.loadStillModel(Gdx.files.internal(path + ".g3d"));
+		}
+		return model;
+	}
+	
+	private void createParticleEffect(Vector3 src) {
+		//Find the first egg particle effect available for use
+		int availParticle = 0;
+		for(int i = 0; i < constMaxEggEffects; i++) {
+			if(prtEggEffects[i].isComplete()) {
+				availParticle = i;
+				break;
+			}
+		}
+		prtEggEffects[availParticle].setPosition(src.x, src.y);
+		prtEggEffects[availParticle].start();
+	}
+}

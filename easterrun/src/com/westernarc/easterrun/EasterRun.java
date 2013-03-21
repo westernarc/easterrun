@@ -178,6 +178,30 @@ public class EasterRun implements ApplicationListener {
 	//Basket gives 2x score on certain egg colors
 	//pendant gives 1 second activatable charge, 0.5 second duration, increases rock frequency
 	int varUnlockState;
+	//When taking unlock state into account, just use varunlockstate == 1, 2, or 3
+	
+	//Jacket speed
+	final float constGroundMaxRateWithBoots = constGroundMaxRate * 1.5f;
+	
+	//Basket variables
+	//Timer for basket collection
+	float tmrBasketTimer;
+	//Max timer
+	final float varBasketTimerMax = 10;
+	//How many eggs you've collected towards basket bonus
+	int varBasketEggsCollected;
+	//How many eggs you need to collect, depends on ground rate
+	int varBasketEggsNeeded;
+	//Which type of egg you need.  Use eggs 0, 1, or 2
+	int varBasketEggTypeNeeded;
+	//Score bonus for retrieving eggs
+	int varBasketEggScoreBonus;
+	
+	//Stopwatch variables
+	boolean varStopwatchActive;
+	final int constStopwatchDuration = 3;
+	float tmrStopwatchTimer;
+	final float constStopwatchSlowEffect = 0.4f;
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -421,6 +445,20 @@ public class EasterRun implements ApplicationListener {
 		//Update game flow timers
 		if(gameState != States.dead) {
 			tpf = Gdx.graphics.getDeltaTime();
+			
+			//Update stopwatch
+			if(varStopwatchActive){
+				tmrStopwatchTimer += tpf;
+				if(tmrStopwatchTimer > constStopwatchDuration) {
+					resetAlpha = 0.9f;
+					tmrStopwatchTimer = 0;
+					varStopwatchActive = false;
+				}
+			}
+			
+			if(varStopwatchActive) {
+				tpf *=  constStopwatchSlowEffect;
+			}
 		} else {
 			//gameState == States.dead
 			tpf = 0;
@@ -923,14 +961,25 @@ public class EasterRun implements ApplicationListener {
 					//Decrease the speed so that in (constInvulnDuration - constInvulnFadeTime) seconds,
 					//the speed falls to the original speed
 					
-					groundRate = constGroundMaxRate;
+					//If boots unlocked
+					if(varUnlockState > 1)
+						groundRate = constGroundMaxRateWithBoots;
+					else
+						groundRate = constGroundMaxRate;
+					
 					resetAlpha = 0.9f;
 				}
 				if(invulnTimer > constInvulnDuration) {
 					
 					invulnActive = false;
 					invulnTimer = 0;
-					groundRate = constGroundMaxRate;
+					
+					//If boots unlocked
+					if(varUnlockState > 1)
+						groundRate = constGroundMaxRateWithBoots;
+					else
+						groundRate = constGroundMaxRate;
+					
 					actPlayer.setMaterial(matPlayer);
 				}
 			}
@@ -969,6 +1018,9 @@ public class EasterRun implements ApplicationListener {
 		}
 		if(Gdx.input.isKeyPressed(Keys.S)) {
 			onInvulnHit();
+		}
+		if(Gdx.input.isKeyPressed(Keys.Z)) {
+			varStopwatchActive = true;
 		}
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
@@ -1065,11 +1117,15 @@ public class EasterRun implements ApplicationListener {
 		//If powerup is not already active, increase animation frame rate and ground rate
 		if(!invulnActive) {
 			
-			if(groundRate >= constGroundMaxRate)
-				groundRate = constGroundMaxRate;
-			else 
+			if(groundRate >= constGroundMaxRate) {
+				//If boots unlocked
+				if(varUnlockState > 1)
+					groundRate = constGroundMaxRateWithBoots;
+				else
+					groundRate = constGroundMaxRate;
+			} else {
 				groundRate = groundRate * constPowerupEffect;
-			
+			}
 			actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
 			powerupActive = true;
 			powerupTimer = 0;
@@ -1079,7 +1135,11 @@ public class EasterRun implements ApplicationListener {
 	public void onInvulnHit() {
 		if(!invulnActive) {
 			invulnActive = true;
-			groundRate = constGroundMaxRate * 2;
+			//If boots unlocked
+			if(varUnlockState > 1)
+				groundRate = constGroundMaxRateWithBoots * 2;
+			else
+				groundRate = constGroundMaxRate * 2;
 			resetAlpha = 0.9f;
 			actPlayer.setMaterial(matPlayerWhite);
 		}
