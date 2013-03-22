@@ -18,9 +18,9 @@
 <fullyQualifiedTypeName name="com.badlogic.gdx.math.Vector3"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.audio.Music"/>
 <fullyQualifiedTypeName name="com.badlogic.gdx.audio.Sound"/>
-<fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun.States"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.GroundActor.GROUNDS"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.Actors.PlayerActor.anims"/>
 <fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun"/>
 <fullyQualifiedTypeName name="com.me.mygdxgame.MyGdxGame"/>
+<fullyQualifiedTypeName name="com.westernarc.easterrun.EasterRun.States"/>
 </qualifiedTypeNameHistroy>

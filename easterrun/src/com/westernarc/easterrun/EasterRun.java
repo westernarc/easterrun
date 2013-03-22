@@ -56,6 +56,12 @@ public class EasterRun implements ApplicationListener {
 	StillModel mdlGroundCornerL;
 	StillModel mdlGroundOutcrop;
 	StillModel mdlGroundBridge;
+	
+	Texture txrEnvTex;
+	Material matEnvMat;
+	Texture txrEnvTexGray;
+	Material matEnvMatGray;
+	
 	final float constGroundBaseRate = 50;
 	final float constGroundMaxRate = 160;
 	float groundRate;
@@ -180,7 +186,7 @@ public class EasterRun implements ApplicationListener {
 	int varUnlockState;
 	//When taking unlock state into account, just use varunlockstate == 1, 2, or 3
 	
-	//Jacket speed
+	//Boots speed
 	final float constGroundMaxRateWithBoots = constGroundMaxRate * 1.5f;
 	
 	//Basket variables
@@ -197,11 +203,21 @@ public class EasterRun implements ApplicationListener {
 	//Score bonus for retrieving eggs
 	int varBasketEggScoreBonus;
 	
+	
 	//Stopwatch variables
 	boolean varStopwatchActive;
+	boolean varStopwatchReady;
 	final int constStopwatchDuration = 3;
+	final int constStopwatchCooldown = 9;
 	float tmrStopwatchTimer;
 	final float constStopwatchSlowEffect = 0.4f;
+	
+	Sprite sprStopwatch;
+	Sprite sprStopwatchReady;
+	Sprite sprStopwatchGray;
+	
+	float varStopwatchReadyAlpha;
+	float varStopwatchGrayAlpha;
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -293,6 +309,13 @@ public class EasterRun implements ApplicationListener {
 			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
 		}
 		Gdx.app.getPreferences("gameprefs").flush();
+		
+		//Stopwatch variables
+		varStopwatchActive = false;
+		varStopwatchReady = true;
+		tmrStopwatchTimer = 0;
+		varStopwatchReadyAlpha = 1;
+		varStopwatchGrayAlpha = 0;
 	}
 	
 	@Override
@@ -330,8 +353,10 @@ public class EasterRun implements ApplicationListener {
 		sprReset.scale(screenHeight * 1.5f / sprReset.getWidth());
 		sprReset.setPosition(screenWidth/2 - sprReset.getWidth()/2, screenHeight/2 - sprReset.getHeight()/2);
 		
-		Texture txrEnvTex = new Texture(Gdx.files.internal("textures/grass.png"));
-		Material matEnvMat = new Material("mat", new TextureAttribute(txrEnvTex, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		txrEnvTex = new Texture(Gdx.files.internal("textures/grass.png"));
+		matEnvMat = new Material("mat", new TextureAttribute(txrEnvTex, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		txrEnvTexGray = new Texture(Gdx.files.internal("textures/grassgray.png"));
+		matEnvMatGray = new Material("mat", new TextureAttribute(txrEnvTexGray, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		
 		//Load models
 		//Load ground
@@ -341,6 +366,7 @@ public class EasterRun implements ApplicationListener {
 		mdlGroundCornerL = loadModel("models/cornerL");
 		mdlGroundBridge = loadModel("models/bridge");
 		mdlGroundOutcrop = loadModel("models/outcrop");
+		
 		mdlGroundStraight.setMaterial(matEnvMat);
 		mdlGroundCornerR.setMaterial(matEnvMat);
 		mdlGroundCornerL.setMaterial(matEnvMat);
@@ -410,8 +436,7 @@ public class EasterRun implements ApplicationListener {
 			actEggs[i - 1].material = matEnvMat;
 			actEggs[i - 1].model.setMaterial(matEnvMat);
 		}
-		
-		
+
 		//Load audio
 		musBackground = Gdx.audio.newMusic(Gdx.files.internal("audio/bgm.mp3"));
 		musBackground.setLooping(true);
@@ -430,6 +455,11 @@ public class EasterRun implements ApplicationListener {
 		sprCross1 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
 		sprCross2 = new Sprite(new Texture(Gdx.files.internal("textures/cross.png")));
 		sprCircle = new Sprite(new Texture(Gdx.files.internal("textures/circle.png")));
+		
+		//Sprites for stopwatch
+		sprStopwatch = new Sprite(new Texture(Gdx.files.internal("textures/stopwatch.png")));
+		sprStopwatchReady = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchoutline.png")));
+		sprStopwatchGray = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchgray.png")));
 	}
 
 	@Override
@@ -438,21 +468,29 @@ public class EasterRun implements ApplicationListener {
 	}
 
 	@Override
-	public void render() {		
-		Gdx.gl10.glClearColor(0.64f, 0.78f, 0.35f, 1);
+	public void render() {
+		if(varStopwatchActive)
+			Gdx.gl10.glClearColor(0.56f, 0.56f, 0.56f, 1);
+		else
+			Gdx.gl10.glClearColor(0.64f, 0.78f, 0.35f, 1);
+		
 		Gdx.gl10.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
 		
 		//Update game flow timers
 		if(gameState != States.dead) {
 			tpf = Gdx.graphics.getDeltaTime();
-			
 			//Update stopwatch
 			if(varStopwatchActive){
+				varStopwatchReady = false;
 				tmrStopwatchTimer += tpf;
 				if(tmrStopwatchTimer > constStopwatchDuration) {
-					resetAlpha = 0.9f;
-					tmrStopwatchTimer = 0;
-					varStopwatchActive = false;
+					onStopwatchDeactivate();
+				}
+			} else {
+				tmrStopwatchTimer += tpf;
+				if(varStopwatchGrayAlpha > 0) varStopwatchGrayAlpha -= tpf / constStopwatchCooldown; else varStopwatchGrayAlpha = 0;
+				if(tmrStopwatchTimer > constStopwatchCooldown){
+					varStopwatchReady = true;
 				}
 			}
 			
@@ -604,13 +642,31 @@ public class EasterRun implements ApplicationListener {
 				}
 			}
 		}
-
+		
+		//Draw stopwatch if unlock state allows it
+		if(varUnlockState == 3) {
+			sprStopwatch.draw(gameBatch);
+			if(varStopwatchReady) {
+				varStopwatchReadyAlpha = 1; 
+			} else { 
+				varStopwatchReadyAlpha = 0;}
+			sprStopwatchReady.setColor(1,1,1,varStopwatchReadyAlpha);
+			sprStopwatchReady.draw(gameBatch);
+			sprStopwatchGray.setColor(1,1,1,varStopwatchGrayAlpha);
+			sprStopwatchGray.draw(gameBatch);
+		}
+		
+		//draw turn signals
 		if(flgSignalFlashOn){
 			sprCircle.draw(gameBatch);
 			sprCross1.draw(gameBatch);
 			sprCross2.draw(gameBatch);
 		}
+		
 		gameBatch.end();
+		
+		 
+		
 		
 		//Draw ui elements over models
 		uiBatch.begin();
@@ -658,6 +714,12 @@ public class EasterRun implements ApplicationListener {
 			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 8, scoreTextPosY - 50);
 			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - scoreIndent, scoreTextPosY + 150 - uiFont.getLineHeight());
 			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
+		}
+		
+		
+		//Draw basket bonus
+		if(varUnlockState >= 2) {
+			uiFont.draw(uiBatch, "Get!", screenWidth - 10 * uiFont.getSpaceWidth(), uiFont.getLineHeight());
 		}
 		
 		//If the game is being reset draw reset fader
@@ -1012,6 +1074,36 @@ public class EasterRun implements ApplicationListener {
 			actPlayer.acceleration.y = -200;
 		}
 	}
+	public void onStopwatchActivate() {
+		mdlGroundStraight.setMaterial(matEnvMatGray);
+		mdlGroundCornerR.setMaterial(matEnvMatGray);
+		mdlGroundCornerL.setMaterial(matEnvMatGray);
+		mdlGroundBridge.setMaterial(matEnvMatGray);
+		mdlGroundOutcrop.setMaterial(matEnvMatGray);
+		for(int i = 0; i < eggMax; i++) {
+			actEggs[i].model.setMaterial(matEnvMatGray);
+		}
+		resetAlpha = 0.9f;
+		
+		varStopwatchActive = true;
+		tmrStopwatchTimer = 0;
+		varStopwatchReady = false;
+	}
+	public void onStopwatchDeactivate() {
+		mdlGroundStraight.setMaterial(matEnvMat);
+		mdlGroundCornerR.setMaterial(matEnvMat);
+		mdlGroundCornerL.setMaterial(matEnvMat);
+		mdlGroundBridge.setMaterial(matEnvMat);
+		mdlGroundOutcrop.setMaterial(matEnvMat);
+		for(int i = 0; i < eggMax; i++) {
+			actEggs[i].model.setMaterial(matEnvMat);
+		}
+		resetAlpha = 0.9f;
+		
+		tmrStopwatchTimer = 0;
+		varStopwatchActive = false;
+		varStopwatchGrayAlpha = 1;
+	}
 	public void handleTouch() {
 		if(Gdx.input.isKeyPressed(Keys.D)){
 			placeCorner = true;
@@ -1019,16 +1111,22 @@ public class EasterRun implements ApplicationListener {
 		if(Gdx.input.isKeyPressed(Keys.S)) {
 			onInvulnHit();
 		}
-		if(Gdx.input.isKeyPressed(Keys.Z)) {
-			varStopwatchActive = true;
+		if(Gdx.input.isKeyPressed(Keys.Z) && varStopwatchReady) {
+			onStopwatchActivate();
 		}
+		
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
+
 		float dX = Gdx.input.getDeltaX();
 		float dY = Gdx.input.getDeltaY();
 		//React to touch depending on state
 		switch(gameState) {
 		case play:
+			//If a second touch is detected, activate stopwatch
+			if(Gdx.input.isTouched(1) && !varStopwatchActive && varStopwatchReady && varUnlockState >= 3) {
+				onStopwatchActivate();
+			}
 			//If dY is < than -20 make the player jump
 			//if(dY < -20) onJump();
 			//Divide the screen into 3 lanes
@@ -1107,6 +1205,9 @@ public class EasterRun implements ApplicationListener {
 	}
 	public void onBombHit() {
 		if(!invulnActive) {
+			if(varStopwatchActive)
+				onStopwatchDeactivate();
+			
 			gameState = States.dead;
 			actPlayer.setMaterial(matPlayerRed);
 			sndDeath.play();
