@@ -2,27 +2,27 @@
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
 		<item value="257" key="DIALOG_WIDTH"/>
-		<item value="723" key="DIALOG_Y_ORIGIN"/>
-		<item value="-78" key="DIALOG_X_ORIGIN"/>
+		<item value="588" key="DIALOG_Y_ORIGIN"/>
 		<item value="380" key="DIALOG_HEIGHT"/>
+		<item value="16" key="DIALOG_X_ORIGIN"/>
 		<item value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI" key="DIALOG_FONT_NAME"/>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
 		<item value="true" key="wrap"/>
-		<item value="false" key="casesensitive"/>
 		<item value="false" key="isRegEx"/>
+		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="false" key="wholeword"/>
-		<item value="Font.draw" key="selection"/>
+		<item value="constTimeTextPosXOrigin" key="selection"/>
 		<list key="findhistory">
-			<item value="font.draw"/>
-			<item value="fnt"/>
-			<item value="if(varstopwatchready"/>
-			<item value="varstopwatchready = tru"/>
-			<item value="varstopwatchready"/>
-			<item value="stopwatchreadyal"/>
-			<item value="stopwatchactive = fal"/>
-			<item value="signal"/>
+			<item value="constTimeTextPosXOrigin"/>
+			<item value="timetextposx ="/>
+			<item value="timetextposx"/>
+			<item value="ft/"/>
+			<item value="varunlockstat"/>
+			<item value="withboots"/>
+			<item value="varunlockst"/>
+			<item value="groundmaxra"/>
 		</list>
 		<list key="replacehistory">
 		</list>

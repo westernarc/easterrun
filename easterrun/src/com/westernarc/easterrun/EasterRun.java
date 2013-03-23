@@ -33,10 +33,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.westernarc.gdx.graphics.g2d.ParticleEffect;
 
 public class EasterRun implements ApplicationListener {
-	//TODO Make speed particle effects follow player's movement cleanly
-	//TODO Unlock messages and display, test unlocks states, unlock threshholds
 	//TODO Alternate ground, 1 set.  Randomly decides to load one on startup
-	//TODO Texture change on character for boots
 	
 	float screenWidth;
 	float screenHeight;
@@ -122,8 +119,8 @@ public class EasterRun implements ApplicationListener {
 	//Time and score records
 	final float constTimeTextPosXOrigin = -300;
 	final float constScoreTextPosXOrigin = 280;
-	final float constScoreTextPosXTrans = 70;
-	final float constTimeTextPosXTrans = 40;
+	final float constScoreTextPosXTrans = 30;
+	final float constTimeTextPosXTrans = 20;
 	float timeTextPosX;
 	float scoreTextPosX;
 	float scoreTextScale; 
@@ -131,8 +128,9 @@ public class EasterRun implements ApplicationListener {
 	//These variables are for the end score screen
 	String scoreText;
 	String hiScoreText;
-	int scoreIndent;
-	int hiScoreIndent;
+	//Text to show unlocks and explanations
+	String unlockText;
+	String explanationText;
 	
 	//Other game variables
 	final float constPowerupDuration = 4;
@@ -227,6 +225,10 @@ public class EasterRun implements ApplicationListener {
 	float varStopwatchGrayAlpha;
 	float varStopwatchAlpha;
 	
+	final int constUNLOCKTHRESHHOLD1 = 8000;
+	final int constUNLOCKTHRESHHOLD2 = 12000;
+	final int constUNLOCKTHRESHHOLD3 = 16000;
+	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
 		
@@ -316,9 +318,21 @@ public class EasterRun implements ApplicationListener {
 		} else if(varUnlockState > 3) {
 			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
 		}
-		//TODO set unlock state properly
-		varUnlockState = 3;
+
 		Gdx.app.getPreferences("gameprefs").flush();
+		
+		if(varUnlockState >= 1) {
+			txrPlayer = new Texture(Gdx.files.internal("textures/paschaboots.png"));
+			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschabootsred.png"));
+			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschabootswhite.png"));
+		} else {
+			txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
+			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		}
+		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		
 		//Stopwatch variables
 		varStopwatchActive = false;
@@ -356,7 +370,6 @@ public class EasterRun implements ApplicationListener {
 		uiBatch = new SpriteBatch();
 		gameBatch = new SpriteBatch();
 		uiFont = new BitmapFont(Gdx.files.internal("text/BimboJVS_B64OJ.fnt"), false);
-		
 		txrTitle = new Texture(Gdx.files.internal("textures/title.png"));
 		sprTitle = new Sprite(txrTitle);
 		sprTitle.setPosition(screenWidth/2 - sprTitle.getWidth()/2, screenHeight/2 - sprTitle.getHeight()/2);
@@ -427,6 +440,7 @@ public class EasterRun implements ApplicationListener {
 		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		
 		//Set texture to the normal one
 		actPlayer.texture = txrPlayer;
 		actPlayer.material = matPlayer;
@@ -647,11 +661,8 @@ public class EasterRun implements ApplicationListener {
 		if(invulnActive && invulnTimer < constInvulnFadeTime) {
 			float prtX = 0;
 			float prtY = 0;
-			if(actPlayer.position.z > 5) {
-				prtX = -screenWidth  / 4f;
-			} else if(actPlayer.position.z < -5) {
-				prtX = screenWidth / 4f;
-			}
+			prtX = -(actPlayer.position.z / 6f) * (screenWidth / 4f);
+			
 			if(prtInvulnEffect.isComplete())
 				prtInvulnEffect.start();
 			if(gameState != States.dead)
@@ -664,11 +675,8 @@ public class EasterRun implements ApplicationListener {
 		if(groundRate > 80 && gameState == States.play) {
 			float prtX = 0;
 			float prtY = 0;
-			if(actPlayer.position.z > 5) {
-				prtX = -screenWidth  / 4f;
-			} else if(actPlayer.position.z < -5) {
-				prtX = screenWidth / 4f;
-			}
+			prtX = -(actPlayer.position.z / 6f) * (screenWidth / 4f);
+
 
 			prtSpeedEffect[0].setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
 			if(gameState != States.dead) { 
@@ -753,7 +761,7 @@ public class EasterRun implements ApplicationListener {
 		if(scoreTextScale > 1) scoreTextScale -= tpf  * 4;
 		if(scoreTextScale < 1) scoreTextScale = 1;
 		uiFont.setScale(scoreTextScale);
-		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (numOfDigits(gameScore) * uiFont.getSpaceWidth())*1.5f, screenHeight - 20);
+		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (uiFont.getBounds(""+gameScore).width), screenHeight - 20);
 		uiFont.setScale(1);
 		
 		//Deal with total scores
@@ -766,8 +774,6 @@ public class EasterRun implements ApplicationListener {
 				hiScore = prefs.getInteger("hiscore");
 				scoreText = String.valueOf(totalScore);
 				hiScoreText = String.valueOf(hiScore);
-				scoreIndent = (int)uiFont.getSpaceWidth() * numOfDigits(totalScore);
-				hiScoreIndent = (int)uiFont.getSpaceWidth() *  numOfDigits(hiScore);
 				
 				//If the score is a hiscore, store it
 				if(totalScore > hiScore) {
@@ -777,16 +783,37 @@ public class EasterRun implements ApplicationListener {
 				}
 				scoreStored = true;
 			}
+			if(totalScore > constUNLOCKTHRESHHOLD1 && varUnlockState == 0) {//Unlock boots
+				unlockText = "   Boots  Unlocked!   ";
+				explanationText = "  Max Speed Increase  ";
+				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 1);
+			} else if(totalScore > constUNLOCKTHRESHHOLD2 && varUnlockState == 1) {//UnlockBasket
+				unlockText = "Color Basket Unlocked!";
+				explanationText = "Gather Same Color Eggs";
+				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 2);
+			} else if(totalScore > constUNLOCKTHRESHHOLD3 && varUnlockState == 2) {//UnlockStopwatch
+				unlockText = " Stopwatch  Unlocked! ";
+				explanationText = "Multitouch to Activate";
+				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+			} else {
+				unlockText = "";
+				explanationText = "";
+			}
+			
 			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1200;
 		} else {
 			if(scoreTextPosY > -screenHeight) scoreTextPosY -= tpf * 1200; else scoreTextPosY = -screenHeight;
 		}
 		//Only draw the scores if they are within view
 		if(scoreTextPosY > -320) {
-			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 10, scoreTextPosY + 150);
-			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getSpaceWidth() * 8, scoreTextPosY - 50);
-			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - scoreIndent, scoreTextPosY + 150 - uiFont.getLineHeight());
-			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getBounds("YOUR SCORE").width/2, scoreTextPosY + 150);
+			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getBounds("HI SCORE").width/2, scoreTextPosY - 50);
+			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - uiFont.getBounds(scoreText).width/2, scoreTextPosY + 150 - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - uiFont.getBounds(hiScoreText).width/2, scoreTextPosY - 50 - uiFont.getLineHeight());
+			uiFont.setScale(0.5f);
+			uiFont.draw(uiBatch, unlockText, screenWidth / 2 - uiFont.getBounds(unlockText).width/2, scoreTextPosY - 250 - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, explanationText, screenWidth / 2 - uiFont.getBounds(explanationText).width/2, scoreTextPosY - 290 - uiFont.getLineHeight());
+			uiFont.setScale(1);
 		}
 		
 		if(sprBasketR.getRotation() < 0)
@@ -822,7 +849,6 @@ public class EasterRun implements ApplicationListener {
 		//End drawing 2d
 	}
 	public void update(float tpf) {
-		
 		//Update stopwatch and basket alpha
 		if(gameState == States.play || gameState == States.dead){
 			if(varBasketAlpha < 1) varBasketAlpha += 1/30f;
@@ -1228,7 +1254,9 @@ public class EasterRun implements ApplicationListener {
 		if(Gdx.input.isKeyPressed(Keys.Z) && varStopwatchReady) {
 			onStopwatchActivate();
 		}
-		
+		if(Gdx.input.isKeyPressed(Keys.Y)) {
+			gameScore += 3000;
+		}
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
 
@@ -1325,10 +1353,6 @@ public class EasterRun implements ApplicationListener {
 				varBasketEggTypeNeeded = (int)Math.floor(Math.random() * 3 - 0.001);
 			}
 		}
-		//System.out.println(currentEgg.model == actEggs[0].model); //blue
-		//System.out.println("Red"+ (currentEgg.model == actEggs[1].model)); //blue
-		//System.out.println("Yellow" + (currentEgg.model == actEggs[2].model)); //blue
-
 		currentEgg.velocity.y = 50;
 		currentEgg.velocity.x = -70;
 		currentEgg.velocity.z = (float)(Math.random()-0.5) * 30;
