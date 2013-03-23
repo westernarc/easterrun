@@ -33,6 +33,11 @@ import com.badlogic.gdx.math.Vector3;
 import com.westernarc.gdx.graphics.g2d.ParticleEffect;
 
 public class EasterRun implements ApplicationListener {
+	//TODO Make speed particle effects follow player's movement cleanly
+	//TODO Unlock messages and display, test unlocks states, unlock threshholds
+	//TODO Alternate ground, 1 set.  Randomly decides to load one on startup
+	//TODO Texture change on character for boots
+	
 	float screenWidth;
 	float screenHeight;
 	float tpf;
@@ -63,7 +68,7 @@ public class EasterRun implements ApplicationListener {
 	Material matEnvMatGray;
 	
 	final float constGroundBaseRate = 50;
-	final float constGroundMaxRate = 160;
+	final float constGroundMaxRate = 120;
 	float groundRate;
 	
 	PlayerActor actPlayer;
@@ -190,19 +195,21 @@ public class EasterRun implements ApplicationListener {
 	final float constGroundMaxRateWithBoots = constGroundMaxRate * 1.5f;
 	
 	//Basket variables
-	//Timer for basket collection
-	float tmrBasketTimer;
-	//Max timer
-	final float varBasketTimerMax = 10;
 	//How many eggs you've collected towards basket bonus
 	int varBasketEggsCollected;
 	//How many eggs you need to collect, depends on ground rate
-	int varBasketEggsNeeded;
+	int varBasketEggsNeeded = 10;
 	//Which type of egg you need.  Use eggs 0, 1, or 2
 	int varBasketEggTypeNeeded;
 	//Score bonus for retrieving eggs
 	int varBasketEggScoreBonus;
+	float varBasketEggScoreScale;
+	float varBasketAlpha;
 	
+	//Sprites
+	Sprite sprBasketY;
+	Sprite sprBasketR;
+	Sprite sprBasketB;
 	
 	//Stopwatch variables
 	boolean varStopwatchActive;
@@ -218,6 +225,7 @@ public class EasterRun implements ApplicationListener {
 	
 	float varStopwatchReadyAlpha;
 	float varStopwatchGrayAlpha;
+	float varStopwatchAlpha;
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -304,18 +312,28 @@ public class EasterRun implements ApplicationListener {
 		//If the unlockstate is 0, set it back to 0;
 		//If it's the first run, then it will return default 0 and put a new integer in
 		if(varUnlockState == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
 		} else if(varUnlockState > 3) {
 			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
 		}
+		//TODO set unlock state properly
+		varUnlockState = 3;
 		Gdx.app.getPreferences("gameprefs").flush();
 		
 		//Stopwatch variables
 		varStopwatchActive = false;
 		varStopwatchReady = true;
 		tmrStopwatchTimer = 0;
-		varStopwatchReadyAlpha = 1;
+		varStopwatchReadyAlpha = 0;
 		varStopwatchGrayAlpha = 0;
+		
+		//Basket Vars
+		varBasketEggScoreBonus = 8;
+		varBasketEggScoreScale = 0.5f;
+		varBasketEggsCollected = 0;
+		
+		varStopwatchAlpha = 0;
+		varBasketAlpha = 0;
 	}
 	
 	@Override
@@ -382,13 +400,30 @@ public class EasterRun implements ApplicationListener {
 			actGround[i].move((i-1) * -groundLength, 0, 0);
 		}
 		
+		//Determine unlockable state
+		varUnlockState = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
+		//If the unlockstate is 0, set it back to 0;
+		//If it's the first run, then it will return default 0 and put a new integer in
+		if(varUnlockState == 0) {
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
+		} else if(varUnlockState > 3) {
+			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
+		}
+		Gdx.app.getPreferences("gameprefs").flush();
+		
 		//Load player
 		actPlayer = new PlayerActor();
 		actPlayer.model = loadModel("models/pascha/player1");
 		//Three textures, one normal one for player getting hit one for invuln
-		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
-		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
-		txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		if(varUnlockState >= 1) {
+			txrPlayer = new Texture(Gdx.files.internal("textures/paschaboots.png"));
+			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschabootsred.png"));
+			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschabootswhite.png"));
+		} else {
+			txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
+			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		}
 		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
@@ -460,6 +495,17 @@ public class EasterRun implements ApplicationListener {
 		sprStopwatch = new Sprite(new Texture(Gdx.files.internal("textures/stopwatch.png")));
 		sprStopwatchReady = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchoutline.png")));
 		sprStopwatchGray = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchgray.png")));
+		sprStopwatch.setPosition(screenWidth - sprStopwatch.getWidth(), 0);
+		sprStopwatchReady.setPosition(screenWidth - sprStopwatchReady.getWidth(), 0);
+		sprStopwatchGray.setPosition(screenWidth - sprStopwatchGray.getWidth(), 0);
+		
+		//Sprites for basket
+		sprBasketR = new Sprite(new Texture(Gdx.files.internal("textures/basketr.png")));
+		sprBasketY = new Sprite(new Texture(Gdx.files.internal("textures/baskety.png")));
+		sprBasketB = new Sprite(new Texture(Gdx.files.internal("textures/basketb.png")));
+		sprBasketR.setPosition(15, 0);
+		sprBasketY.setPosition(15, 0);
+		sprBasketB.setPosition(15, 0);
 	}
 
 	@Override
@@ -645,15 +691,42 @@ public class EasterRun implements ApplicationListener {
 		
 		//Draw stopwatch if unlock state allows it
 		if(varUnlockState == 3) {
+			sprStopwatch.setColor(1,1,1,varStopwatchAlpha);
 			sprStopwatch.draw(gameBatch);
-			if(varStopwatchReady) {
-				varStopwatchReadyAlpha = 1; 
-			} else { 
-				varStopwatchReadyAlpha = 0;}
+			if(varStopwatchReady && (gameState == States.play || gameState == States.dead)) {
+				if(varStopwatchReadyAlpha < 1)
+					varStopwatchReadyAlpha += 1/30f;
+				else
+					varStopwatchReadyAlpha = 1; 
+			} else {
+				if(varStopwatchReadyAlpha > 0)
+					varStopwatchReadyAlpha -= 1/30f;
+				else
+					varStopwatchReadyAlpha = 0;
+			}
 			sprStopwatchReady.setColor(1,1,1,varStopwatchReadyAlpha);
 			sprStopwatchReady.draw(gameBatch);
 			sprStopwatchGray.setColor(1,1,1,varStopwatchGrayAlpha);
 			sprStopwatchGray.draw(gameBatch);
+
+		}
+		
+		//Draw basket if unlock state is sufficient
+		if(varUnlockState >= 2) {
+			sprBasketB.setColor(1,1,1,varBasketAlpha);
+			sprBasketR.setColor(1,1,1,varBasketAlpha);
+			sprBasketY.setColor(1,1,1,varBasketAlpha);
+			switch(varBasketEggTypeNeeded) {
+			case 0:
+				sprBasketB.draw(gameBatch);
+				break;
+			case 1:
+				sprBasketR.draw(gameBatch);
+				break;
+			case 2:
+				sprBasketY.draw(gameBatch);
+				break;
+			}
 		}
 		
 		//draw turn signals
@@ -716,10 +789,31 @@ public class EasterRun implements ApplicationListener {
 			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - hiScoreIndent, scoreTextPosY - 50 - uiFont.getLineHeight());
 		}
 		
+		if(sprBasketR.getRotation() < 0)
+			sprBasketR.rotate(1);
+		else
+			sprBasketR.setRotation(0);
 		
+		if(sprBasketY.getRotation() < 0)
+			sprBasketY.rotate(1);
+		else
+			sprBasketY.setRotation(0);
+		
+		if(sprBasketB.getRotation() < 0)
+			sprBasketB.rotate(1);
+		else
+			sprBasketB.setRotation(0);
+
 		//Draw basket bonus
 		if(varUnlockState >= 2) {
-			uiFont.draw(uiBatch, "Get!", screenWidth - 10 * uiFont.getSpaceWidth(), uiFont.getLineHeight());
+			uiFont.setScale(0.5f);
+			uiFont.setColor(1,1,1, varStopwatchAlpha);
+			uiFont.draw(uiBatch, "Get "+varBasketEggScoreBonus+"x!", 45, uiFont.getLineHeight() * 2.5f);
+			if(varBasketEggScoreScale > 0.5) varBasketEggScoreScale -= tpf;
+			uiFont.setScale(varBasketEggScoreScale);
+			uiFont.draw(uiBatch, "" + varBasketEggsCollected + "/" + varBasketEggsNeeded, 45, uiFont.getLineHeight() * 1.5f);
+			uiFont.setScale(1);
+			uiFont.setColor(1,1,1,1);
 		}
 		
 		//If the game is being reset draw reset fader
@@ -728,6 +822,24 @@ public class EasterRun implements ApplicationListener {
 		//End drawing 2d
 	}
 	public void update(float tpf) {
+		
+		//Update stopwatch and basket alpha
+		if(gameState == States.play || gameState == States.dead){
+			if(varBasketAlpha < 1) varBasketAlpha += 1/30f;
+			else varBasketAlpha = 1;
+			if(varStopwatchAlpha < 1) varStopwatchAlpha += 1/30f;
+			else varStopwatchAlpha = 1;
+		} else {
+			if(varBasketAlpha > 0) varBasketAlpha -= 1/30f;
+			else varBasketAlpha = 0;
+			if(varStopwatchAlpha > 0) varStopwatchAlpha -= 1/30f;
+			else varStopwatchAlpha = 0;
+			if(varStopwatchGrayAlpha > 0) varStopwatchGrayAlpha -= 1/30f;
+			else varStopwatchGrayAlpha = 0;
+			if(varStopwatchReadyAlpha > 0) varStopwatchReadyAlpha -= 1/30f;
+			else varStopwatchReadyAlpha = 0;
+		}
+		
 		//Update title sprite
 		if(gameState == States.title && titleAlpha < 1) {
 			titleAlpha += 1/30f;
@@ -1024,7 +1136,7 @@ public class EasterRun implements ApplicationListener {
 					//the speed falls to the original speed
 					
 					//If boots unlocked
-					if(varUnlockState > 1)
+					if(varUnlockState >= 1)
 						groundRate = constGroundMaxRateWithBoots;
 					else
 						groundRate = constGroundMaxRate;
@@ -1037,7 +1149,7 @@ public class EasterRun implements ApplicationListener {
 					invulnTimer = 0;
 					
 					//If boots unlocked
-					if(varUnlockState > 1)
+					if(varUnlockState >= 1)
 						groundRate = constGroundMaxRateWithBoots;
 					else
 						groundRate = constGroundMaxRate;
@@ -1075,19 +1187,21 @@ public class EasterRun implements ApplicationListener {
 		}
 	}
 	public void onStopwatchActivate() {
-		mdlGroundStraight.setMaterial(matEnvMatGray);
-		mdlGroundCornerR.setMaterial(matEnvMatGray);
-		mdlGroundCornerL.setMaterial(matEnvMatGray);
-		mdlGroundBridge.setMaterial(matEnvMatGray);
-		mdlGroundOutcrop.setMaterial(matEnvMatGray);
-		for(int i = 0; i < eggMax; i++) {
-			actEggs[i].model.setMaterial(matEnvMatGray);
+		if(gameState == States.play  && varUnlockState >= 3){
+			mdlGroundStraight.setMaterial(matEnvMatGray);
+			mdlGroundCornerR.setMaterial(matEnvMatGray);
+			mdlGroundCornerL.setMaterial(matEnvMatGray);
+			mdlGroundBridge.setMaterial(matEnvMatGray);
+			mdlGroundOutcrop.setMaterial(matEnvMatGray);
+			for(int i = 0; i < eggMax; i++) {
+				actEggs[i].model.setMaterial(matEnvMatGray);
+			}
+			resetAlpha = 0.9f;
+			
+			varStopwatchActive = true;
+			tmrStopwatchTimer = 0;
+			varStopwatchReady = false;
 		}
-		resetAlpha = 0.9f;
-		
-		varStopwatchActive = true;
-		tmrStopwatchTimer = 0;
-		varStopwatchReady = false;
 	}
 	public void onStopwatchDeactivate() {
 		mdlGroundStraight.setMaterial(matEnvMat);
@@ -1124,7 +1238,7 @@ public class EasterRun implements ApplicationListener {
 		switch(gameState) {
 		case play:
 			//If a second touch is detected, activate stopwatch
-			if(Gdx.input.isTouched(1) && !varStopwatchActive && varStopwatchReady && varUnlockState >= 3) {
+			if(Gdx.input.isTouched(1) && !varStopwatchActive && varStopwatchReady) {
 				onStopwatchActivate();
 			}
 			//If dY is < than -20 make the player jump
@@ -1184,7 +1298,37 @@ public class EasterRun implements ApplicationListener {
 	}
 	
 	public void onEggHit(Actor currentEgg) {
-		//TODO Hitting eggs not specific
+		//Update basket counter
+		if(varUnlockState >= 2) {
+			int eggType = 4; //Count it as non colored egg at first
+			if(currentEgg.model == actEggs[0].model)
+				eggType = 0;
+			else if(currentEgg.model == actEggs[1].model)
+				eggType = 1;
+			else if(currentEgg.model == actEggs[2].model)
+				eggType = 2;
+			
+			//If the collided egg matches the type needed by the basket
+			//Increment the amount of eggs in the basket
+			if(eggType == varBasketEggTypeNeeded) {
+				varBasketEggsCollected++;
+				varBasketEggScoreScale = 0.7f;
+				sprBasketR.setRotation(-20);
+				sprBasketY.setRotation(-20);
+				sprBasketB.setRotation(-20);
+				gameScore += 70;
+			}
+			
+			//If you finish collecting eggs, change the color
+			if(varBasketEggsCollected >= varBasketEggsNeeded) {
+				varBasketEggsCollected = 0;
+				varBasketEggTypeNeeded = (int)Math.floor(Math.random() * 3 - 0.001);
+			}
+		}
+		//System.out.println(currentEgg.model == actEggs[0].model); //blue
+		//System.out.println("Red"+ (currentEgg.model == actEggs[1].model)); //blue
+		//System.out.println("Yellow" + (currentEgg.model == actEggs[2].model)); //blue
+
 		currentEgg.velocity.y = 50;
 		currentEgg.velocity.x = -70;
 		currentEgg.velocity.z = (float)(Math.random()-0.5) * 30;
@@ -1218,15 +1362,21 @@ public class EasterRun implements ApplicationListener {
 		//If powerup is not already active, increase animation frame rate and ground rate
 		if(!invulnActive) {
 			
-			if(groundRate >= constGroundMaxRate) {
+			if(varUnlockState >= 1) {
 				//If boots unlocked
-				if(varUnlockState > 1)
+				if(groundRate >= constGroundMaxRateWithBoots) {
 					groundRate = constGroundMaxRateWithBoots;
-				else
-					groundRate = constGroundMaxRate;
+				} else {
+					groundRate = groundRate * constPowerupEffect;
+				}
 			} else {
-				groundRate = groundRate * constPowerupEffect;
+				if(groundRate >= constGroundMaxRate) {
+					groundRate = constGroundMaxRate;
+				} else {
+					groundRate = groundRate * constPowerupEffect;
+				}
 			}
+			
 			actPlayer.animFrameRate = AnimActor.constDefaultFrameRate / (groundRate / constGroundBaseRate);
 			powerupActive = true;
 			powerupTimer = 0;
@@ -1237,7 +1387,7 @@ public class EasterRun implements ApplicationListener {
 		if(!invulnActive) {
 			invulnActive = true;
 			//If boots unlocked
-			if(varUnlockState > 1)
+			if(varUnlockState >= 1)
 				groundRate = constGroundMaxRateWithBoots * 2;
 			else
 				groundRate = constGroundMaxRate * 2;
