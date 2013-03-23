@@ -8,7 +8,6 @@ INDEX VERSION 1.126+C:\eclipse\workspace\easterrun\.metadata\.plugins\org.eclips
 955712231.index
 4038163858.index
 3585733931.index
-2412586506.index
 4154001510.index
 2789476188.index
 765042270.index
