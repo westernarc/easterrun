@@ -65,7 +65,7 @@ public class EasterRun implements ApplicationListener {
 	Material matEnvMatGray;
 	
 	final float constGroundBaseRate = 50;
-	final float constGroundMaxRate = 120;
+	final float constGroundMaxRate = 150;
 	float groundRate;
 	
 	PlayerActor actPlayer;
@@ -75,6 +75,14 @@ public class EasterRun implements ApplicationListener {
 	Material matPlayerRed;
 	Texture txrPlayerWhite;
 	Material matPlayerWhite;
+	
+	Texture txrPlayerWithBoots;
+	Material matPlayerWithBoots;
+	Texture txrPlayerRedWithBoots;
+	Material matPlayerRedWithBoots;
+	Texture txrPlayerWhiteWithBoots;
+	Material matPlayerWhiteWithBoots;
+	
 	final float constPlayerX = -5;
 	
 	final int eggMax = 6;
@@ -225,9 +233,9 @@ public class EasterRun implements ApplicationListener {
 	float varStopwatchGrayAlpha;
 	float varStopwatchAlpha;
 	
-	final int constUNLOCKTHRESHHOLD1 = 8000;
-	final int constUNLOCKTHRESHHOLD2 = 12000;
-	final int constUNLOCKTHRESHHOLD3 = 16000;
+	final int constUNLOCKTHRESHHOLD1 = 1000;
+	final int constUNLOCKTHRESHHOLD2 = 3000;
+	final int constUNLOCKTHRESHHOLD3 = 5000;
 	
 	public void initialize() {
 		groundRate = constGroundBaseRate;
@@ -290,7 +298,6 @@ public class EasterRun implements ApplicationListener {
 		
 		prtInvulnEffect = new ParticleEffect();
 		prtInvulnEffect.load(Gdx.files.internal("data/invuln.p"), Gdx.files.internal("textures/"));
-		prtInvulnEffect.start();
 		
 		placeCorner = false;
 		cornerPlaced = false;
@@ -308,31 +315,31 @@ public class EasterRun implements ApplicationListener {
 		tmrSignalFlash = 0;
 		flgSignalFlashOn = false;
 		ctrSignalFlashCount = 0;
-		
+
 		//Determine unlockable state
-		varUnlockState = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
+		Preferences prefs = Gdx.app.getPreferences("gameprefs");
+		varUnlockState = prefs.getInteger("unlockstate", 0);
 		//If the unlockstate is 0, set it back to 0;
 		//If it's the first run, then it will return default 0 and put a new integer in
 		if(varUnlockState == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
+			prefs.putInteger("unlockstate", 0);
+			varUnlockState = 0;
 		} else if(varUnlockState > 3) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+			prefs.putInteger("unlockstate", 3);
+			varUnlockState = 3;
 		}
-
-		Gdx.app.getPreferences("gameprefs").flush();
 		
-		if(varUnlockState >= 1) {
-			txrPlayer = new Texture(Gdx.files.internal("textures/paschaboots.png"));
-			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschabootsred.png"));
-			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschabootswhite.png"));
-		} else {
-			txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
-			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
-			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		//Make new hiscore
+		if(prefs.getInteger("hiscore", 0) == 0) {
+			prefs.putInteger("hiscore", 0);
 		}
-		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
-		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
-		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		prefs.flush();
+
+		if(varUnlockState >= 1) {
+			actPlayer.setMaterial(matPlayerWithBoots);
+		} else {
+			actPlayer.setMaterial(matPlayer);
+		}
 		
 		//Stopwatch variables
 		varStopwatchActive = false;
@@ -354,11 +361,6 @@ public class EasterRun implements ApplicationListener {
 	public void create() {		
 		screenWidth = Gdx.graphics.getWidth();
 		screenHeight = Gdx.graphics.getHeight();
-		
-		if(Gdx.app.getPreferences("gameprefs").getInteger("hiscore",0) == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("hiscore", 0);
-			Gdx.app.getPreferences("gameprefs").flush();
-		}
 		
 		//Set up cameras
 		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
@@ -413,33 +415,24 @@ public class EasterRun implements ApplicationListener {
 			actGround[i].move((i-1) * -groundLength, 0, 0);
 		}
 		
-		//Determine unlockable state
-		varUnlockState = Gdx.app.getPreferences("gameprefs").getInteger("unlockstate", 0);
-		//If the unlockstate is 0, set it back to 0;
-		//If it's the first run, then it will return default 0 and put a new integer in
-		if(varUnlockState == 0) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
-		} else if(varUnlockState > 3) {
-			Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 0);
-		}
-		Gdx.app.getPreferences("gameprefs").flush();
-		
 		//Load player
 		actPlayer = new PlayerActor();
 		actPlayer.model = loadModel("models/pascha/player1");
 		//Three textures, one normal one for player getting hit one for invuln
-		if(varUnlockState >= 1) {
-			txrPlayer = new Texture(Gdx.files.internal("textures/paschaboots.png"));
-			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschabootsred.png"));
-			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschabootswhite.png"));
-		} else {
-			txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
-			txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
-			txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
-		}
+		txrPlayerWithBoots = new Texture(Gdx.files.internal("textures/paschaboots.png"));
+		txrPlayerRedWithBoots = new Texture(Gdx.files.internal("textures/paschabootsred.png"));
+		txrPlayerWhiteWithBoots = new Texture(Gdx.files.internal("textures/paschabootswhite.png"));
+		txrPlayer = new Texture(Gdx.files.internal("textures/pascha.png"));
+		txrPlayerRed = new Texture(Gdx.files.internal("textures/paschared.png"));
+		txrPlayerWhite = new Texture(Gdx.files.internal("textures/paschawhite.png"));
+		
 		matPlayer = new Material("mat", new TextureAttribute(txrPlayer, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerRed = new Material("mat", new TextureAttribute(txrPlayerRed, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
 		matPlayerWhite = new Material("mat", new TextureAttribute(txrPlayerWhite, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerWithBoots = new Material("mat", new TextureAttribute(txrPlayerWithBoots, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerRedWithBoots = new Material("mat", new TextureAttribute(txrPlayerRedWithBoots, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		matPlayerWhiteWithBoots = new Material("mat", new TextureAttribute(txrPlayerWhiteWithBoots, 0, "s_tex"), new ColorAttribute(Color.WHITE, ColorAttribute.diffuse));
+		
 		
 		//Set texture to the normal one
 		actPlayer.texture = txrPlayer;
@@ -659,16 +652,16 @@ public class EasterRun implements ApplicationListener {
 		}
 		//Invuln particles
 		if(invulnActive && invulnTimer < constInvulnFadeTime) {
+			if(prtInvulnEffect.isComplete())
+				prtInvulnEffect.start();
+			prtInvulnEffect.draw(gameBatch);
+		}
+		if(gameState != States.dead) {
 			float prtX = 0;
 			float prtY = 0;
 			prtX = -(actPlayer.position.z / 6f) * (screenWidth / 4f);
-			
-			if(prtInvulnEffect.isComplete())
-				prtInvulnEffect.start();
-			if(gameState != States.dead)
-				prtInvulnEffect.update(tpf);
 			prtInvulnEffect.setPosition((screenWidth/2) + prtX, screenHeight/3 + prtY);
-			prtInvulnEffect.draw(gameBatch);
+			prtInvulnEffect.update(tpf);
 		}
 		
 		//Speed effect particles
@@ -768,8 +761,8 @@ public class EasterRun implements ApplicationListener {
 		int totalScore = gameScore + (int)gameTimer;
 		//Draw score display if gamestate is States.score
 		if(gameState == States.score) {
+			Preferences prefs = Gdx.app.getPreferences("gameprefs");
 			if(!scoreStored) {
-				Preferences prefs = Gdx.app.getPreferences("gameprefs");
 				prefs.getInteger("hiscore", 0);
 				hiScore = prefs.getInteger("hiscore");
 				scoreText = String.valueOf(totalScore);
@@ -779,27 +772,29 @@ public class EasterRun implements ApplicationListener {
 				if(totalScore > hiScore) {
 					prefs.putInteger("hiscore", totalScore);
 					hiScore = totalScore;
-					prefs.flush();
 				}
 				scoreStored = true;
 			}
 			if(totalScore > constUNLOCKTHRESHHOLD1 && varUnlockState == 0) {//Unlock boots
 				unlockText = "   Boots  Unlocked!   ";
 				explanationText = "  Max Speed Increase  ";
-				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 1);
+				prefs.putInteger("unlockstate", 1);
 			} else if(totalScore > constUNLOCKTHRESHHOLD2 && varUnlockState == 1) {//UnlockBasket
 				unlockText = "Color Basket Unlocked!";
 				explanationText = "Gather Same Color Eggs";
-				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 2);
+				prefs.putInteger("unlockstate", 2);
 			} else if(totalScore > constUNLOCKTHRESHHOLD3 && varUnlockState == 2) {//UnlockStopwatch
 				unlockText = " Stopwatch  Unlocked! ";
 				explanationText = "Multitouch to Activate";
-				Gdx.app.getPreferences("gameprefs").putInteger("unlockstate", 3);
+				prefs.putInteger("unlockstate", 3);
 			} else {
 				unlockText = "";
 				explanationText = "";
+				prefs.putInteger("unlockstate", varUnlockState);
 			}
-			
+			//Persist changes
+			prefs.flush();
+
 			if(scoreTextPosY < screenHeight/2) scoreTextPosY += tpf * 1200;
 		} else {
 			if(scoreTextPosY > -screenHeight) scoreTextPosY -= tpf * 1200; else scoreTextPosY = -screenHeight;
@@ -1175,12 +1170,14 @@ public class EasterRun implements ApplicationListener {
 					invulnTimer = 0;
 					
 					//If boots unlocked
-					if(varUnlockState >= 1)
+					if(varUnlockState >= 1){
 						groundRate = constGroundMaxRateWithBoots;
-					else
+						actPlayer.setMaterial(matPlayerWithBoots);
+					}else{
 						groundRate = constGroundMaxRate;
+						actPlayer.setMaterial(matPlayer);
+					}
 					
-					actPlayer.setMaterial(matPlayer);
 				}
 			}
 		} else {
@@ -1377,7 +1374,11 @@ public class EasterRun implements ApplicationListener {
 				onStopwatchDeactivate();
 			
 			gameState = States.dead;
-			actPlayer.setMaterial(matPlayerRed);
+			if(varUnlockState >= 1) {
+				actPlayer.setMaterial(matPlayerRedWithBoots);
+			} else {
+				actPlayer.setMaterial(matPlayerRed);
+			}
 			sndDeath.play();
 		}
 	}
@@ -1416,7 +1417,11 @@ public class EasterRun implements ApplicationListener {
 			else
 				groundRate = constGroundMaxRate * 2;
 			resetAlpha = 0.9f;
-			actPlayer.setMaterial(matPlayerWhite);
+			if(varUnlockState >= 1) {
+				actPlayer.setMaterial(matPlayerWhiteWithBoots);
+			} else {
+				actPlayer.setMaterial(matPlayerWhite);
+			}
 		}
 	}
 	
