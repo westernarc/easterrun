@@ -8,4 +8,4 @@ logcat.view.colsize.TID=50
 logcat.view.colsize.Tag=107
 logcat.view.colsize.Text=543
 logcat.view.colsize.Time=160
-logcat.view.filters.list=name\: 'errors', tag\: '', text\: '', pid\: '', app\: '', level\: 'error', 
+logcat.view.filters.list=name\: 'errors', tag\: '', text\: '', pid\: '', app\: '', level\: 'error', name\: 'Out', tag\: 'System.out', text\: '', pid\: '', app\: '', level\: 'verbose', 
