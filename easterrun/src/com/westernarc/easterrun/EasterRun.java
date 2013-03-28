@@ -65,7 +65,7 @@ public class EasterRun implements ApplicationListener {
 	Material matEnvMatGray;
 	
 	final float constGroundBaseRate = 50;
-	final float constGroundMaxRate = 150;
+	final float constGroundMaxRate = 130;
 	float groundRate;
 	
 	PlayerActor actPlayer;
@@ -172,7 +172,10 @@ public class EasterRun implements ApplicationListener {
 		
 	//Audio
 	Music musBackground;
+	float varBgmVolume;
 	Sound sndDeath;
+	Sound sndStopwatch;
+	Sound sndInvuln;
 	Sound sndEgg;
 	
 	//Sprites used to signal lanes to switch to during
@@ -492,6 +495,8 @@ public class EasterRun implements ApplicationListener {
 		musBackground.play();
 		sndDeath = Gdx.audio.newSound(Gdx.files.internal("audio/clang.wav"));
 		sndEgg = Gdx.audio.newSound(Gdx.files.internal("audio/pop.wav"));
+		sndInvuln = Gdx.audio.newSound(Gdx.files.internal("audio/invuln.wav"));
+		sndStopwatch = Gdx.audio.newSound(Gdx.files.internal("audio/watch.wav"));
 		//Initialize variables
 		initialize();
 		//Vars to only be initialized once
@@ -567,7 +572,10 @@ public class EasterRun implements ApplicationListener {
 				gameState = States.score;
 			}
 		}
-				
+		if(!varStopwatchActive && varBgmVolume < 1){
+			varBgmVolume += tpf;
+		}
+		musBackground.setVolume(varBgmVolume);
 		//Update objects
 		update(tpf);
 				
@@ -941,7 +949,7 @@ public class EasterRun implements ApplicationListener {
 					flgSignalFlashOn = false;
 				}
 				
-				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
+				if(actGround[i].position.x > -groundLength * 3/4f && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
 					sprCross1.setPosition(screenWidth / 4f - sprCross1.getWidth()/2f, screenHeight / 3f - sprCross1.getHeight()/2f);
 					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
@@ -978,7 +986,7 @@ public class EasterRun implements ApplicationListener {
 					flgSignalFlashOn = false;
 				}
 				
-				if(actGround[i].position.x > -groundLength && actGround[i].position.x < -20 && gameTimer > 20) {
+				if(actGround[i].position.x > -groundLength * 3/4f && actGround[i].position.x < -20 && gameTimer > 20) {
 					cornerPlaced = true;
 					sprCircle.setPosition(screenWidth / 4f - sprCircle.getWidth()/2f, screenHeight / 3f - sprCircle.getHeight()/2f);
 					sprCross2.setPosition(screenWidth / 2f - sprCross2.getWidth()/2f, screenHeight / 3f - sprCross2.getHeight()/2f);
@@ -1218,6 +1226,8 @@ public class EasterRun implements ApplicationListener {
 	}
 	public void onStopwatchActivate() {
 		if(gameState == States.play  && varUnlockState >= 3){
+			varBgmVolume = 0.2f;
+			sndStopwatch.loop();
 			mdlGroundStraight.setMaterial(matEnvMatGray);
 			mdlGroundCornerR.setMaterial(matEnvMatGray);
 			mdlGroundCornerL.setMaterial(matEnvMatGray);
@@ -1234,6 +1244,7 @@ public class EasterRun implements ApplicationListener {
 		}
 	}
 	public void onStopwatchDeactivate() {
+		sndStopwatch.stop();
 		mdlGroundStraight.setMaterial(matEnvMat);
 		mdlGroundCornerR.setMaterial(matEnvMat);
 		mdlGroundCornerL.setMaterial(matEnvMat);
@@ -1417,6 +1428,7 @@ public class EasterRun implements ApplicationListener {
 	
 	public void onInvulnHit() {
 		if(!invulnActive) {
+			sndInvuln.play();
 			invulnActive = true;
 			//If boots unlocked
 			if(varUnlockState >= 1)
