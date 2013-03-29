@@ -819,7 +819,7 @@ public class EasterRun implements ApplicationListener {
 				prefs.putInteger("unlockstate", 2);
 			} else if(totalScore > constUNLOCKTHRESHHOLD3 && varUnlockState == 2) {//UnlockStopwatch
 				unlockText = " Stopwatch  Unlocked! ";
-				explanationText = "Multitouch to Activate";
+				explanationText = "Swipe Down to Activate";
 				prefs.putInteger("unlockstate", 3);
 			} else {
 				unlockText = "";

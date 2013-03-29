@@ -13,16 +13,16 @@
 		<item value="false" key="casesensitive"/>
 		<item value="false" key="incremental"/>
 		<item value="false" key="wholeword"/>
-		<item value="cornerPla" key="selection"/>
+		<item value="render(" key="selection"/>
 		<list key="findhistory">
-			<item value="cornerpla"/>
-			<item value="ground"/>
-			<item value="groundplac"/>
-			<item value="groundplaced"/>
-			<item value="onstopwatchac"/>
-			<item value="sndstopwatch ="/>
-			<item value="= gdx.audio"/>
-			<item value="= gdx."/>
+			<item value="render("/>
+			<item value="model.s"/>
+			<item value="model."/>
+			<item value="clone()"/>
+			<item value="multit"/>
+			<item value="getcaphei"/>
+			<item value="GETLINEHEIGHT"/>
+			<item value="get &quot;"/>
 		</list>
 		<list key="replacehistory">
 			<item value=""/>
