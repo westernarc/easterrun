@@ -37,6 +37,10 @@ public class EasterRun implements ApplicationListener {
 	
 	float screenWidth;
 	float screenHeight;
+	float screenFW;
+	float screenFH;
+	float screenFW2;
+	float screenFH2;
 	float tpf;
 	
 	//Use this to switch between g3dt and g3d
@@ -262,7 +266,7 @@ public class EasterRun implements ApplicationListener {
 		
 		actPlayer.setMaterial(matPlayer);
 		actPlayer.rotation.set(0,0,0);
-		scoreTextScale = 1;
+		scoreTextScale = screenFW;
 		scoreStored = false;
 		
 		powerupActive = false;
@@ -353,7 +357,7 @@ public class EasterRun implements ApplicationListener {
 		
 		//Basket Vars
 		varBasketEggScoreBonus = 8;
-		varBasketEggScoreScale = 0.5f;
+		varBasketEggScoreScale = screenFW2;
 		varBasketEggsCollected = 0;
 		
 		varStopwatchAlpha = 0;
@@ -364,6 +368,12 @@ public class EasterRun implements ApplicationListener {
 	public void create() {		
 		screenWidth = Gdx.graphics.getWidth();
 		screenHeight = Gdx.graphics.getHeight();
+		
+		screenFW = screenWidth / 480f;
+		screenFH = screenHeight / 800f;
+		
+		screenFW2 = screenFW/2f;
+		screenFH2 = screenFH/2f;
 		
 		//Set up cameras
 		gameCamera = new PerspectiveCamera(85, screenWidth, screenHeight);
@@ -514,17 +524,25 @@ public class EasterRun implements ApplicationListener {
 		sprStopwatch = new Sprite(new Texture(Gdx.files.internal("textures/stopwatch.png")));
 		sprStopwatchReady = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchoutline.png")));
 		sprStopwatchGray = new Sprite(new Texture(Gdx.files.internal("textures/stopwatchgray.png")));
-		sprStopwatch.setPosition(screenWidth - sprStopwatch.getWidth(), 0);
-		sprStopwatchReady.setPosition(screenWidth - sprStopwatchReady.getWidth(), 0);
-		sprStopwatchGray.setPosition(screenWidth - sprStopwatchGray.getWidth(), 0);
+		sprStopwatch.setScale(screenFW, screenFW);
+		sprStopwatchReady.setScale(screenFW, screenFW);
+		sprStopwatchGray.setScale(screenFW, screenFW);
 		
+		sprStopwatch.setPosition((screenWidth - sprStopwatch.getBoundingRectangle().width), sprStopwatch.getBoundingRectangle().height - sprStopwatch.getHeight());
+		sprStopwatchReady.setPosition((screenWidth - sprStopwatchReady.getBoundingRectangle().width), sprStopwatchReady.getBoundingRectangle().height - sprStopwatchReady.getHeight());
+		sprStopwatchGray.setPosition((screenWidth - sprStopwatchGray.getBoundingRectangle().width), sprStopwatchGray.getBoundingRectangle().height - sprStopwatchGray.getHeight());
+
 		//Sprites for basket
 		sprBasketR = new Sprite(new Texture(Gdx.files.internal("textures/basketr.png")));
 		sprBasketY = new Sprite(new Texture(Gdx.files.internal("textures/baskety.png")));
 		sprBasketB = new Sprite(new Texture(Gdx.files.internal("textures/basketb.png")));
-		sprBasketR.setPosition(15, 0);
-		sprBasketY.setPosition(15, 0);
-		sprBasketB.setPosition(15, 0);
+		sprBasketR.setScale(screenFW, screenFW);
+		sprBasketY.setScale(screenFW, screenFW);
+		sprBasketB.setScale(screenFW, screenFW);
+		
+		sprBasketR.setPosition(sprBasketR.getBoundingRectangle().width - sprBasketR.getWidth(), sprBasketR.getBoundingRectangle().height - sprBasketR.getHeight());
+		sprBasketY.setPosition(sprBasketY.getBoundingRectangle().width - sprBasketR.getWidth(), sprBasketY.getBoundingRectangle().height - sprBasketY.getHeight());
+		sprBasketB.setPosition(sprBasketB.getBoundingRectangle().width - sprBasketR.getWidth(), sprBasketB.getBoundingRectangle().height - sprBasketB.getHeight());
 	}
 
 	@Override
@@ -760,17 +778,18 @@ public class EasterRun implements ApplicationListener {
 		//Draw ui elements over models
 		uiBatch.begin();
 		sprTitle.draw(uiBatch);
+		uiFont.setScale(screenFW, screenFH);
 		uiFont.draw(uiBatch, Math.round(gameTimer) + "ft", timeTextPosX, screenHeight - 20);
-		uiFont.setScale(0.5f);
+		uiFont.setScale(screenFW2, screenFH2);
 		uiFont.draw(uiBatch, Math.round(deltaTime2*10)/10f + "ft/s", timeTextPosX, screenHeight - uiFont.getCapHeight()*2 - 20);
-		uiFont.setScale(1);
+		uiFont.setScale(screenFW, screenFH);
 		
 		//Handle score display scaling
-		if(scoreTextScale > 1) scoreTextScale -= tpf  * 4;
-		if(scoreTextScale < 1) scoreTextScale = 1;
+		if(scoreTextScale > screenFW) scoreTextScale -= tpf  * 4;
+		if(scoreTextScale < screenFW) scoreTextScale = screenFW;
 		uiFont.setScale(scoreTextScale);
 		uiFont.draw(uiBatch, "" + gameScore, scoreTextPosX - (uiFont.getBounds(""+gameScore).width), screenHeight - 20);
-		uiFont.setScale(1);
+		uiFont.setScale(screenFW, screenFH);
 		
 		//Deal with total scores
 		int totalScore = gameScore + (int)gameTimer;
@@ -816,14 +835,15 @@ public class EasterRun implements ApplicationListener {
 		}
 		//Only draw the scores if they are within view
 		if(scoreTextPosY > -320) {
-			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getBounds("YOUR SCORE").width/2, scoreTextPosY + 150);
-			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getBounds("HI SCORE").width/2, scoreTextPosY - 50);
-			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - uiFont.getBounds(scoreText).width/2, scoreTextPosY + 150 - uiFont.getLineHeight());
-			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - uiFont.getBounds(hiScoreText).width/2, scoreTextPosY - 50 - uiFont.getLineHeight());
-			uiFont.setScale(0.5f);
-			uiFont.draw(uiBatch, unlockText, screenWidth / 2 - uiFont.getBounds(unlockText).width/2, scoreTextPosY - 250 - uiFont.getLineHeight());
-			uiFont.draw(uiBatch, explanationText, screenWidth / 2 - uiFont.getBounds(explanationText).width/2, scoreTextPosY - 290 - uiFont.getLineHeight());
-			uiFont.setScale(1);
+			uiFont.setScale(screenFW, screenFH);
+			uiFont.draw(uiBatch, "YOUR SCORE", screenWidth / 2 - uiFont.getBounds("YOUR SCORE").width/2, scoreTextPosY + 150 * screenFH);
+			uiFont.draw(uiBatch, "HI SCORE", screenWidth / 2 - uiFont.getBounds("HI SCORE").width/2, scoreTextPosY - 50 * screenFH);
+			uiFont.draw(uiBatch, scoreText, screenWidth / 2 - uiFont.getBounds(scoreText).width/2, scoreTextPosY + 150 * screenFH - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, hiScoreText, screenWidth / 2 - uiFont.getBounds(hiScoreText).width/2, scoreTextPosY - 50 * screenFH - uiFont.getLineHeight());
+			uiFont.setScale(screenFW2, screenFH2);
+			uiFont.draw(uiBatch, unlockText, screenWidth / 2 - uiFont.getBounds(unlockText).width/2, scoreTextPosY - 250 * screenFH - uiFont.getLineHeight());
+			uiFont.draw(uiBatch, explanationText, screenWidth / 2 - uiFont.getBounds(explanationText).width/2, scoreTextPosY - 290 * screenFH - uiFont.getLineHeight());
+			uiFont.setScale(screenFW, screenFH);
 		}
 		
 		if(sprBasketR.getRotation() < 0)
@@ -843,13 +863,13 @@ public class EasterRun implements ApplicationListener {
 
 		//Draw basket bonus
 		if(varUnlockState >= 2) {
-			uiFont.setScale(0.5f);
+			uiFont.setScale(screenFW2, screenFH2);
 			uiFont.setColor(1,1,1, varStopwatchAlpha);
-			uiFont.draw(uiBatch, "Get "+varBasketEggScoreBonus+"x!", 45, uiFont.getLineHeight() * 2.5f);
-			if(varBasketEggScoreScale > 0.5) varBasketEggScoreScale -= tpf;
+			uiFont.draw(uiBatch, "Get "+varBasketEggScoreBonus+"x!", 45 * screenFH, (uiFont.getLineHeight()) * 2.5f);
+			if(varBasketEggScoreScale > screenFW2) varBasketEggScoreScale -= tpf;
 			uiFont.setScale(varBasketEggScoreScale);
-			uiFont.draw(uiBatch, "" + varBasketEggsCollected + "/" + varBasketEggsNeeded, 45, uiFont.getLineHeight() * 1.5f);
-			uiFont.setScale(1);
+			uiFont.draw(uiBatch, "" + varBasketEggsCollected + "/" + varBasketEggsNeeded, 45 * screenFH, (uiFont.getLineHeight()) * 1.5f);
+			uiFont.setScale(screenFW, screenFH);
 			uiFont.setColor(1,1,1,1);
 		}
 		
@@ -1281,7 +1301,7 @@ public class EasterRun implements ApplicationListener {
 		switch(gameState) {
 		case play:
 			//If a second touch is detected, activate stopwatch
-			if(Gdx.input.isTouched(1) && !varStopwatchActive && varStopwatchReady) {
+			if(dY > 40 && !varStopwatchActive && varStopwatchReady) {
 				onStopwatchActivate();
 			}
 			//If dY is < than -20 make the player jump
@@ -1355,7 +1375,7 @@ public class EasterRun implements ApplicationListener {
 			//Increment the amount of eggs in the basket
 			if(eggType == varBasketEggTypeNeeded) {
 				varBasketEggsCollected++;
-				varBasketEggScoreScale = 0.7f;
+				varBasketEggScoreScale = screenFW * 0.7f;
 				sprBasketR.setRotation(-20);
 				sprBasketY.setRotation(-20);
 				sprBasketB.setRotation(-20);
@@ -1375,7 +1395,7 @@ public class EasterRun implements ApplicationListener {
 		currentEgg.acceleration.x = 200;
 		currentEgg.collisionActive = false;
 		gameScore += 10;
-		scoreTextScale = 1.5f;
+		scoreTextScale = screenFW * 1.5f;
 		Vector3 prtVector = new Vector3(screenWidth/2,screenHeight/3,0);
 		
 		if(currentEgg.position.z > 1)
