@@ -11,14 +11,11 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL10;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.model.still.StillModel;
 import com.badlogic.gdx.graphics.g3d.loaders.ModelLoaderRegistry;
 import com.badlogic.gdx.graphics.g3d.loaders.g3d.chunks.G3dExporter;
@@ -26,11 +23,11 @@ import com.westernarc.easterrun.Actors.Actor;
 import com.westernarc.easterrun.Actors.AnimActor;
 import com.westernarc.easterrun.Actors.GroundActor;
 import com.westernarc.easterrun.Actors.PlayerActor;
+import com.westernarc.easterrun.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g3d.materials.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.materials.Material;
 import com.badlogic.gdx.graphics.g3d.materials.ColorAttribute;
 import com.badlogic.gdx.math.Vector3;
-import com.westernarc.gdx.graphics.g2d.ParticleEffect;
 
 public class EasterRun implements ApplicationListener {
 	//TODO Alternate ground, 1 set.  Randomly decides to load one on startup
@@ -150,9 +147,10 @@ public class EasterRun implements ApplicationListener {
 	boolean powerupActive;
 	float powerupTimer;
 	
-	final float constInvulnDuration = 4;
+	final float constInvulnDuration = 4.7f;
 	final float constInvulnFadeTime = 3.7f;
 	boolean invulnActive;
+	boolean invulnFading;
 	float invulnTimer;
 
 	final int constEggLimit = 5;
@@ -273,6 +271,7 @@ public class EasterRun implements ApplicationListener {
 		powerupTimer = 0;
 		
 		invulnActive = false;
+		invulnFading = false;
 		invulnTimer = 0;
 		actPlayer.animFrameRate = AnimActor.constDefaultFrameRate;
 		
@@ -1196,23 +1195,23 @@ public class EasterRun implements ApplicationListener {
 						groundRate = constGroundMaxRateWithBoots;
 					else
 						groundRate = constGroundMaxRate;
-					
-					resetAlpha = 0.9f;
+					if(!invulnFading) {
+						invulnFading = true;
+						resetAlpha = 0.9f;
+						//If boots unlocked
+						if(varUnlockState >= 1){
+							groundRate = constGroundMaxRateWithBoots;
+							actPlayer.setMaterial(matPlayerWithBoots);
+						}else{
+							groundRate = constGroundMaxRate;
+							actPlayer.setMaterial(matPlayer);
+						}
+					}
 				}
 				if(invulnTimer > constInvulnDuration) {
-					
 					invulnActive = false;
+					invulnFading = false;
 					invulnTimer = 0;
-					
-					//If boots unlocked
-					if(varUnlockState >= 1){
-						groundRate = constGroundMaxRateWithBoots;
-						actPlayer.setMaterial(matPlayerWithBoots);
-					}else{
-						groundRate = constGroundMaxRate;
-						actPlayer.setMaterial(matPlayer);
-					}
-					
 				}
 			}
 		} else {
@@ -1280,21 +1279,13 @@ public class EasterRun implements ApplicationListener {
 		varStopwatchGrayAlpha = 1;
 	}
 	public void handleTouch() {
-		if(Gdx.input.isKeyPressed(Keys.D)){
-			placeCorner = true;
-		}
-		if(Gdx.input.isKeyPressed(Keys.S)) {
-			onInvulnHit();
-		}
-		if(Gdx.input.isKeyPressed(Keys.Z) && varStopwatchReady) {
-			onStopwatchActivate();
-		}
-		if(Gdx.input.isKeyPressed(Keys.Y)) {
-			gameScore += 3000;
-		}
 		float x = Gdx.input.getX() - screenWidth / 2f;
 		float y = Gdx.input.getY() - screenHeight / 2f;
-
+		
+		/*
+		if(Gdx.input.isKeyPressed(Keys.S)) {
+			onInvulnHit();
+		}*/
 		float dX = Gdx.input.getDeltaX();
 		float dY = Gdx.input.getDeltaY();
 		//React to touch depending on state
@@ -1423,6 +1414,7 @@ public class EasterRun implements ApplicationListener {
 	
 	public void onPowerupHit() {
 		//If powerup is not already active, increase animation frame rate and ground rate
+		gameScore += 90;
 		if(!invulnActive) {
 			
 			if(varUnlockState >= 1) {
@@ -1447,6 +1439,7 @@ public class EasterRun implements ApplicationListener {
 	}
 	
 	public void onInvulnHit() {
+		gameScore += 90;
 		if(!invulnActive) {
 			sndInvuln.play();
 			invulnActive = true;
@@ -1462,17 +1455,6 @@ public class EasterRun implements ApplicationListener {
 				actPlayer.setMaterial(matPlayerWhite);
 			}
 		}
-	}
-	
-	//Utility method to find number of digits in a number
-	//Used for centering text and score
-	private int numOfDigits(int in) {
-		int numOfDigits = 1;
-		while(in > 1) {
-			in /= 10;
-			numOfDigits++;
-		}
-		return numOfDigits;
 	}
 	
 	private StillModel loadModel(String path) {

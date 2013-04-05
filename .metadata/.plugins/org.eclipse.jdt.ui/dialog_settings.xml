@@ -12,17 +12,17 @@
 		<item value="600" key="width"/>
 	</section>
 	<section name="FatJarPackageWizard">
-		<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_03_28.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
+		<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_04_04.jar" key="FatJarPackageWizardPage.DESTINATION_PATH_SELECTION"/>
 		<item value="Main - easterrun-desktop" key="FatJarPackageWizardPage.LAUNCH_CONFIGURATION_SELECTION_NAME"/>
 		<item value="C:\eclipse\workspace\easterrun" key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION"/>
 		<item value="false" key="FatJarPackageWizardPage.ANTSCRIPT_SAVE"/>
 		<item value="2" key="FatJarPackageWizardPage.LIBRARY_HANDLING"/>
 		<list key="FatJarPackageWizardPage.DESTINATION_NAMES_ID">
+			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_04_04.jar"/>
+			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_03_29.jar"/>
 			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_03_28.jar"/>
 			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_03_24.jar"/>
 			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_03_23.jar"/>
-			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_23.jar"/>
-			<item value="C:\eclipse\workspace\easterrun\easterrun-desktop_2013_02_21.jar"/>
 		</list>
 		<list key="FatJarPackageWizardPage.ANTSCRIPT_LOCATION_HISTORY">
 			<item value="C:\eclipse\workspace\easterrun.xml"/>
